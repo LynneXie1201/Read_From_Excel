@@ -16,10 +16,9 @@ func main() {
 
 	var fileSlice [][][]string
 	fileSlice, _ = xlsx.FileToSlice("test_excel.xlsx") // Create a file slice
-
-	//col := xlFile.Sheets.MaxCol()  // get the colume number
+	col := xlFile.Sheets[0].MaxCol                     // get the colume number
 	keys := []string{}
-	for k := 0; k < 3; k++ {
+	for k := 0; k < col; k++ {
 		keys = append(keys, fileSlice[0][0][k])
 
 	}
