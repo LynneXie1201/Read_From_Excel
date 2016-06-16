@@ -39,7 +39,6 @@ func excelToSlice(excelFileName string) []map[string]string {
 	if err != nil {
 		fmt.Printf(err.Error())
 	}
-
 	var fileSlice [][][]string
 	fileSlice, _ = xlsx.FileToSlice(excelFileName) // Create a file slice
 	col := xlFile.Sheets[0].MaxCol                 // get the colume number
@@ -92,47 +91,12 @@ type te struct {
 	Code, Outcome, Anti int
 }
 
-type fuMI struct {
-	PTID, Type, Date string
-	Code             int
-}
-
-type fuPACE struct {
-	PTID, Type, Date string
-	Code             int
-}
-
 type sbe struct {
-	PTID, Type, Date string
-	Code             int
+	PTID, Type, Date, Organism string
+	Code                       int
 }
 
-type svd struct {
-	PTID, Type, Date string
-	Code             int
-}
-
-type pvl struct {
-	PTID, Type, Date string
-	Code             int
-}
-
-type dvt struct {
-	PTID, Type, Date string
-	Code             int
-}
-
-type arh struct {
-	PTID, Type, Date string
-	Code             int
-}
-
-type thrm struct {
-	PTID, Type, Date string
-	Code             int
-}
-
-type heml struct {
+type general struct {
 	PTID, Type, Date string
 	Code             int
 }
@@ -146,15 +110,15 @@ func main() {
 		allDths      []death
 		allReOper    []reOperation
 		allTE        []te
-		allFuMI      []fuMI
-		allFuPace    []fuPACE
+		allFuMI      []general
+		allFuPace    []general
 		allSBE       []sbe
-		allSVD       []svd
-		allPVL       []pvl
-		allDVT       []dvt
-		allARH       []arh
-		allTHRM      []thrm
-		allHEML      []heml
+		allSVD       []general
+		allPVL       []general
+		allDVT       []general
+		allARH       []general
+		allTHRM      []general
+		allHEML      []general
 	)
 	// Returns a slice of maps from excel files
 	s := excelToSlice("L:/CVDMC Students/Yilin Xie/data/follow_up.xlsx")
@@ -237,7 +201,7 @@ func main() {
 
 		// Event FUMI
 		if m["FUMI_D"] != "" {
-			f1 := fuMI{
+			f1 := general{
 				PTID: m["PTID"],
 				Type: "FUMI",
 				Date: m["FUMI_D"]}
@@ -247,7 +211,7 @@ func main() {
 
 		// Event FUPACE
 		if m["FUPACE_D"] != "" {
-			f2 := fuPACE{
+			f2 := general{
 				PTID: m["PTID"],
 				Type: "FUPACE",
 				Date: m["FUPACE_D"]}
@@ -282,7 +246,7 @@ func main() {
 
 		// Event SVD
 		if m["SVD_D"] != "" {
-			s4 := svd{
+			s4 := general{
 				PTID: m["PTID"],
 				Type: "SVD",
 				Date: m["SVD_D"]}
@@ -291,7 +255,7 @@ func main() {
 		}
 		// Event PVL
 		if m["PVL1_D"] != "" {
-			pvl1 := pvl{
+			pvl1 := general{
 				PTID: m["PTID"],
 				Type: "PVL",
 				Date: m["PVL1_D"]}
@@ -300,7 +264,7 @@ func main() {
 		}
 
 		if m["PVL2_D"] != "" {
-			pvl2 := pvl{
+			pvl2 := general{
 				PTID: m["PTID"],
 				Type: "PVL",
 				Date: m["PVL2_D"]}
@@ -310,7 +274,7 @@ func main() {
 
 		// Event DVT
 		if m["DVT_D"] != "" {
-			d1 := dvt{
+			d1 := general{
 				PTID: m["PTID"],
 				Type: "DVT",
 				Date: m["DVT_D"]}
@@ -319,7 +283,7 @@ func main() {
 		}
 		// Event ARH
 		if m["ARH1_D"] != "" {
-			arh1 := arh{
+			arh1 := general{
 				PTID: m["PTID"],
 				Type: "ARH",
 				Date: m["ARH1_D"]}
@@ -328,7 +292,7 @@ func main() {
 		}
 
 		if m["ARH2_D"] != "" {
-			arh2 := arh{
+			arh2 := general{
 				PTID: m["PTID"],
 				Type: "ARH",
 				Date: m["ARH2_D"]}
@@ -339,8 +303,7 @@ func main() {
 
 		// Event THRM
 		if m["THRM1_D"] != "" {
-
-			thrm1 := thrm{
+			thrm1 := general{
 				PTID: m["PTID"],
 				Type: "THRM",
 				Date: m["THRM1_D"]}
@@ -349,7 +312,7 @@ func main() {
 		}
 
 		if m["THRM2_D"] != "" {
-			thrm2 := thrm{
+			thrm2 := general{
 				PTID: m["PTID"],
 				Type: "THRM",
 				Date: m["THRM2_D"]}
@@ -360,7 +323,7 @@ func main() {
 
 		// Event HEML
 		if m["HEML1_D"] != "" {
-			heml1 := heml{
+			heml1 := general{
 				PTID: m["PTID"],
 				Type: "HEML",
 				Date: m["HEML1_D"]}
@@ -369,7 +332,7 @@ func main() {
 		}
 
 		if m["HEML2_D"] != "" {
-			heml2 := heml{
+			heml2 := general{
 				PTID: m["PTID"],
 				Type: "HEML",
 				Date: m["HEML2_D"]}
@@ -378,7 +341,7 @@ func main() {
 		}
 
 	}
-	writeTOFile(allTE, "TE")
+	writeTOFile(allFuMI, "MI")
 	//fmt.Println(allTE)
 
 }
