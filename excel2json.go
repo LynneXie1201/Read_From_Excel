@@ -121,7 +121,7 @@ func loopAllFiles(dirPath string) {
 	})
 	if err == nil {
 		for _, file := range fileList {
-			excelTOJson(file)
+			readExcelData(file)
 		}
 	}
 }
@@ -154,7 +154,7 @@ func excelToSlice(excelFileName string) []map[string]string {
 	return nil
 }
 
-func excelTOJson(path string) {
+func readExcelData(path string) {
 	// Returns a slice of maps from excel files
 	s := excelToSlice(path)
 	if s == nil {
