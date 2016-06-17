@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -60,6 +61,7 @@ type general struct {
 
 // Helper functions
 
+// Change the date Format to YYYY-MM-DD
 func changeDateFormat(x string) string {
 	value := strings.Replace(x, "\\", "", -1)
 	test, _ := time.Parse("02-Jan-06", value)
@@ -101,6 +103,7 @@ func checkFollowups(excelFileName string) (bool, []string) {
 	for k := 0; k < col; k++ {
 		keys = append(keys, fileSlice[0][0][k])
 	}
+	// Check for the key fields
 	if stringInSlice("FU_D", keys) && stringInSlice("Followup_STATUS", keys) {
 		return true, keys
 	}
@@ -108,8 +111,19 @@ func checkFollowups(excelFileName string) (bool, []string) {
 }
 
 // for loop all excel files in a folder
-func loopAllFiles() {
-
+func loopAllFiles(dirPath string) {
+	fileList := []string{}
+	err := filepath.Walk(dirPath, func(path string, f os.FileInfo, err error) error {
+		if !f.IsDir() {
+			fileList = append(fileList, path)
+		}
+		return nil
+	})
+	if err == nil {
+		for _, file := range fileList {
+			excelTOJson(file)
+		}
+	}
 }
 
 // a function returns a slice of maps for one excel file
@@ -143,7 +157,9 @@ func excelToSlice(excelFileName string) []map[string]string {
 func excelTOJson(path string) {
 	// Returns a slice of maps from excel files
 	s := excelToSlice(path)
-	if s != nil {
+	if s == nil {
+		fmt.Println("no! this is not a follow_up file: ", path)
+	} else {
 		for _, m := range s {
 			// Event follow_ups
 			if m["FU_D"] != "" {
@@ -368,12 +384,11 @@ func excelTOJson(path string) {
 			}
 
 		}
-		writeTOFile(events, "events")
-		fmt.Println("yes! this is a follow_up file")
+		fmt.Println("yes! this is a follow_up file: ", path)
 	}
-	fmt.Println("no! this is not a follow_up file")
 }
 
 func main() {
-	excelTOJson("L:/CVDMC Students/Yilin Xie/data/echo.xlsx")
+	loopAllFiles("L:/CVDMC Students/Yilin Xie/data/excel")
+	fmt.Println(allDths)
 }
