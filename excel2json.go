@@ -68,8 +68,8 @@ func excelToSlice(excelFileName string) []map[string]string {
 // Create types of events
 
 type followUp struct {
-	PTID, Type, Date, Status string
-	Plat, Coag, PoNYHA       int
+	PTID, Type, Date, Status, NoneValveReop, FuNotes, Notes, LostOnDate, OtherNote string
+	Plat, Coag, PoNYHA                                                             int
 }
 
 type lkaDate struct {
@@ -77,13 +77,13 @@ type lkaDate struct {
 }
 
 type death struct {
-	PTID, Type, Date string
-	Code, PrmDth     int
+	PTID, Type, Date, Reason string
+	Code, PrmDth             int
 }
 
 type reOperation struct {
-	PTID, Type, Date string
-	Code             int
+	PTID, Type, Date, Reason, Surgery, Notes string
+	Code, Survival                           int
 }
 
 type te struct {
@@ -126,10 +126,15 @@ func main() {
 		// Event follow_ups
 		if m["FU_D"] != "" {
 			fU := followUp{
-				PTID:   m["PTID"],
-				Date:   m["FU_D"],
-				Type:   "followUps",
-				Status: m["Followup_STATUS"]}
+				PTID:          m["PTID"],
+				Date:          m["FU_D"],
+				Type:          "followup",
+				Status:        m["Followup_STATUS"],
+				NoneValveReop: m["NONVALVE REOP"],
+				FuNotes:       m["FU NOTES"],
+				Notes:         m["NOTES"],
+				LostOnDate:    m["STATUS=L DATE"],
+				OtherNote:     m["STATUS=O REASON"]}
 			fU.Coag, _ = strconv.Atoi(m["COAG"])
 			fU.PoNYHA, _ = strconv.Atoi(m["PO_NYHA"])
 			fU.Plat, _ = strconv.Atoi(m["PLAT"])
@@ -147,9 +152,10 @@ func main() {
 		// Event Death
 		if m["DIED"] == "1" {
 			d := death{
-				PTID: m["PTID"],
-				Type: "DeathFU",
-				Date: m["DTH_D"]}
+				PTID:   m["PTID"],
+				Type:   "death",
+				Date:   m["DTH_D"],
+				Reason: m["REASDTH"]}
 			d.PrmDth, _ = strconv.Atoi(m["PRM_DTH"])
 			d.Code, _ = strconv.Atoi(m["DIED"])
 			allDths = append(allDths, d)
@@ -158,10 +164,14 @@ func main() {
 		// Event FUREOP
 		if m["FUREOP"] == "1" {
 			re := reOperation{
-				PTID: m["PTID"],
-				Type: "FUREOP",
-				Date: m["FUREOP_D"]}
+				PTID:    m["PTID"],
+				Type:    "FUREOP",
+				Date:    m["FUREOP_D"],
+				Reason:  m["REASREOP"],
+				Surgery: m["REOPSURG"],
+				Notes:   m["REOPNOTES"]}
 			re.Code, _ = strconv.Atoi(m["FUREOP"])
+			re.Survival, _ = strconv.Atoi(m["REOPSURVIVAL"])
 			allReOper = append(allReOper, re)
 		}
 
@@ -341,7 +351,7 @@ func main() {
 		}
 
 	}
-	writeTOFile(allFuMI, "MI")
+	writeTOFile(allFollowUps, "follow")
 	//fmt.Println(allTE)
 
 }
