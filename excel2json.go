@@ -12,7 +12,7 @@ import (
 	"github.com/tealeg/xlsx"
 )
 
-// global variables
+// global variables, to store the corresponding events
 var (
 	allFollowUps []followUp
 	allLKA       []lkaDate
@@ -389,6 +389,6 @@ func readExcelData(path string) {
 }
 
 func main() {
-	loopAllFiles("L:/CVDMC Students/Yilin Xie/data/excel")
-	fmt.Println(allDths)
+	loopAllFiles(your_folder_path)
+	//fmt.Println(allDths)
 }
