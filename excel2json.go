@@ -111,7 +111,7 @@ func checkFollowups(excelFileName string) (bool, []string) {
 	return false, nil
 }
 
-// for loop all excel files in a folder
+// Recursively loop all excel files in a folder
 func loopAllFiles(dirPath string) {
 	fileList := []string{}
 	err := filepath.Walk(dirPath, func(path string, f os.FileInfo, err error) error {
@@ -389,11 +389,7 @@ func readExcelData(path string) {
 }
 
 func main() {
-<<<<<<< HEAD
-	loopAllFiles("L:/CVDMC Students/Yilin Xie/data/excel")
-	fmt.Println(events)
-=======
+
 	loopAllFiles(your_folder_path)
 	//fmt.Println(allDths)
->>>>>>> fd087400610863f13b7f607ca8e03aba35f3935d
 }
