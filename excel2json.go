@@ -71,12 +71,13 @@ func changeDateFormat(x string) string {
 // a function that writes to json files
 func writeTOFile(s interface{}, name string) {
 	jsonFile, err := os.Create("./" + name + ".json")
-	p, _ := json.Marshal(s)
-	jsonFile.Write(p)
 	if err != nil {
 		fmt.Println(err)
 	}
-	//	defer jsonFile.Close()
+	defer jsonFile.Close()
+
+	p, _ := json.Marshal(s)
+	jsonFile.Write(p)
 	jsonFile.Close()
 }
 
@@ -382,7 +383,6 @@ func readExcelData(path string) {
 				heml2.Code, _ = strconv.Atoi(m["HEML2"])
 				events = append(events, heml2)
 			}
-
 		}
 		fmt.Println("yes! this is a follow_up file: ", path)
 	}
@@ -390,5 +390,5 @@ func readExcelData(path string) {
 
 func main() {
 	loopAllFiles("L:/CVDMC Students/Yilin Xie/data/excel")
-	fmt.Println(allDths)
+	fmt.Println(events)
 }
