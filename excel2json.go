@@ -276,6 +276,7 @@ func readExcelData(path string) {
 				te1.Code, _ = strconv.Atoi(m["TE1"])
 				te1.Outcome, _ = strconv.Atoi(m["TE1_OUT"])
 				te1.Anti, _ = strconv.Atoi(m["ANTI_TE1"])
+				// Generate Error Messages
 				if !intInSlice(te1.Code, nums[:4]) {
 					newError(path, te1.PTID, i, te1.Type, "TE1", m["TE1"])
 				}
@@ -295,6 +296,7 @@ func readExcelData(path string) {
 				te2.Code, _ = strconv.Atoi(m["TE2"])
 				te2.Outcome, _ = strconv.Atoi(m["TE2_OUT"])
 				te2.Anti, _ = strconv.Atoi(m["ANTI_TE2"])
+					// Generate Error Messages
 				if !intInSlice(te2.Code, nums[:4]) {
 					newError(path, te2.PTID, i, te2.Type, "TE2", m["TE2"])
 				}
@@ -314,6 +316,7 @@ func readExcelData(path string) {
 				te3.Code, _ = strconv.Atoi(m["TE3"])
 				te3.Outcome, _ = strconv.Atoi(m["TE3_OUT"])
 				te3.Anti, _ = strconv.Atoi(m["ANTI_TE3"])
+					// Generate Error Messages
 				if !intInSlice(te3.Code, nums[:4]) {
 					newError(path, te3.PTID, i, te3.Type, "TE3", m["TE3"])
 				}
@@ -354,6 +357,7 @@ func readExcelData(path string) {
 					Date:     m["SBE1_D"],
 					Organism: m["SBE1 ORGANISM"]}
 				sbe1.Code, _ = strconv.Atoi(m["SBE1"])
+					// Generate Error Messages
 				if !intInSlice(sbe1.Code, nums[:2]) {
 					newError(path, sbe1.PTID, i, sbe1.Type, "SBE1", m["SBE1"])
 				}
@@ -367,6 +371,7 @@ func readExcelData(path string) {
 					Date:     m["SBE2_D"],
 					Organism: m["SBE2 ORGANISM"]}
 				sbe2.Code, _ = strconv.Atoi(m["SBE2"])
+					// Generate Error Messages
 				if !intInSlice(sbe2.Code, nums[:2]) {
 					newError(path, sbe2.PTID, i, sbe2.Type, "SBE2", m["SBE2"])
 				}
@@ -380,6 +385,7 @@ func readExcelData(path string) {
 					Date:     m["SBE3_D"],
 					Organism: m["SBE3 ORGANISM"]}
 				sbe3.Code, _ = strconv.Atoi(m["SBE3"])
+					// Generate Error Messages
 				if !intInSlice(sbe3.Code, nums[:2]) {
 					newError(path, sbe3.PTID, i, sbe3.Type, "SBE3", m["SBE3"])
 				}
@@ -430,6 +436,7 @@ func readExcelData(path string) {
 					Type: "ARH",
 					Date: m["ARH1_D"]}
 				arh1.Code, _ = strconv.Atoi(m["ARH1"])
+					// Generate Error Messages
 				if !intInSlice(arh1.Code, nums[:]) {
 					newError(path, arh1.PTID, i, arh1.Type, "ARH1", m["ARH1"])
 				}
@@ -442,6 +449,7 @@ func readExcelData(path string) {
 					Type: "ARH",
 					Date: m["ARH2_D"]}
 				arh2.Code, _ = strconv.Atoi(m["ARH2"])
+					// Generate Error Messages
 				if !intInSlice(arh2.Code, nums[:]) {
 					newError(path, arh2.PTID, i, arh2.Type, "ARH2", m["ARH2"])
 				}
@@ -492,7 +500,7 @@ func readExcelData(path string) {
 func main() {
 	nums = []int{0, 1, 2, 3, 4, 5}
 	codes = []string{"A", "D", "L", "N", "O", "R"}
-	loopAllFiles("L:/CVDMC Students/Yilin Xie/data/excel")
+	loopAllFiles("path_to_your_folder")
 	fmt.Println(allDths)
 
 }
