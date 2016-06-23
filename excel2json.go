@@ -165,12 +165,16 @@ func excelToSlice(excelFilePath string) []map[string]string {
 	// Check if the excel file is a followup file
 	value, keys := checkFollowups(excelFilePath)
 	if value == true {
+
 		slices := []map[string]string{} // each row is a map
 		for _, sheet := range xlFile.Sheets {
 			for _, row := range sheet.Rows {
 				m := map[string]string{}
 				for j, cell := range row.Cells {
 					value, _ := cell.String()
+					if value == "9" {
+						value = "-9"
+					}
 					if strings.Contains(value, "\\") {
 						value = changeDateFormat(value)
 					}
@@ -181,6 +185,7 @@ func excelToSlice(excelFilePath string) []map[string]string {
 		}
 		return slices[1:] // return the followup excel file as a slice
 	}
+
 	return nil // return nil if the excel file isn't a follow up file
 }
 
@@ -213,13 +218,13 @@ func readExcelData(path string) {
 				if !stringInSlice(fU.Status, codes) {
 					newError(path, fU.PTID, i, fU.Type, "Status", fU.Status)
 				}
-				if !intInSlice(fU.PoNYHA, nums[1:5]) {
+				if !intInSlice(fU.PoNYHA, nums[1:6]) {
 					newError(path, fU.PTID, i, fU.Type, "PO_NYHA", m["PO_NYHA"])
 				}
-				if !intInSlice(fU.Coag, nums[:2]) {
+				if !intInSlice(fU.Coag, nums[:3]) {
 					newError(path, fU.PTID, i, fU.Type, "COAG", m["COAG"])
 				}
-				if !intInSlice(fU.Plat, nums[0:2]) {
+				if !intInSlice(fU.Plat, nums[:3]) {
 					newError(path, fU.PTID, i, fU.Type, "PLAT", m["PLAT"])
 				}
 				writeTOFile(fU)                         // write this object to the json file
@@ -244,10 +249,10 @@ func readExcelData(path string) {
 				d.PrmDth, _ = strconv.Atoi(m["PRM_DTH"])
 				d.Code, _ = strconv.Atoi(m["DIED"])
 				// Validate fields' values
-				if !intInSlice(d.Code, nums[:2]) {
+				if !intInSlice(d.Code, nums[:3]) {
 					newError(path, d.PTID, i, d.Type, "DIED", m["DIED"])
 				}
-				if !intInSlice(d.PrmDth, nums[:5]) {
+				if !intInSlice(d.PrmDth, nums[:6]) {
 					newError(path, d.PTID, i, d.Type, "PRM_DTH", m["PRM_DTH"])
 				}
 				writeTOFile(d)
@@ -266,7 +271,7 @@ func readExcelData(path string) {
 				re.Code, _ = strconv.Atoi(m["FUREOP"])
 				re.Survival, _ = strconv.Atoi(m["REOPSURVIVAL"])
 				// Validate fields' values
-				if !intInSlice(re.Code, nums[:2]) {
+				if !intInSlice(re.Code, nums[:3]) {
 					newError(path, re.PTID, i, re.Type, "FUREOP", m["FUREOP"])
 				}
 				writeTOFile(re)
@@ -283,13 +288,13 @@ func readExcelData(path string) {
 				te1.Outcome, _ = strconv.Atoi(m["TE1_OUT"])
 				te1.Anti, _ = strconv.Atoi(m["ANTI_TE1"])
 				// Generate Error Messages
-				if !intInSlice(te1.Code, nums[:4]) {
+				if !intInSlice(te1.Code, nums[:5]) {
 					newError(path, te1.PTID, i, te1.Type, "TE1", m["TE1"])
 				}
-				if !intInSlice(te1.Outcome, nums[:4]) {
+				if !intInSlice(te1.Outcome, nums[:5]) {
 					newError(path, te1.PTID, i, te1.Type, "TE1_OUT", m["TE1_OUT"])
 				}
-				if !intInSlice(te1.Anti, nums[:4]) && (te1.Anti != 8) {
+				if !intInSlice(te1.Anti, nums[:5]) && (te1.Anti != 8) {
 					newError(path, te1.PTID, i, te1.Type, "ANTI_TE1", m["ANTI_TE1"])
 				}
 				writeTOFile(te1)
@@ -304,13 +309,13 @@ func readExcelData(path string) {
 				te2.Outcome, _ = strconv.Atoi(m["TE2_OUT"])
 				te2.Anti, _ = strconv.Atoi(m["ANTI_TE2"])
 				// Generate Error Messages
-				if !intInSlice(te2.Code, nums[:4]) {
+				if !intInSlice(te2.Code, nums[:5]) {
 					newError(path, te2.PTID, i, te2.Type, "TE2", m["TE2"])
 				}
-				if !intInSlice(te2.Outcome, nums[:4]) {
+				if !intInSlice(te2.Outcome, nums[:5]) {
 					newError(path, te2.PTID, i, te2.Type, "TE2_OUT", m["TE2_OUT"])
 				}
-				if !intInSlice(te2.Anti, nums[:4]) && (te2.Anti != 8) {
+				if !intInSlice(te2.Anti, nums[:5]) && (te2.Anti != 8) {
 					newError(path, te2.PTID, i, te2.Type, "ANTI_TE2", m["ANTI_TE2"])
 				}
 				writeTOFile(te2)
@@ -325,13 +330,13 @@ func readExcelData(path string) {
 				te3.Outcome, _ = strconv.Atoi(m["TE3_OUT"])
 				te3.Anti, _ = strconv.Atoi(m["ANTI_TE3"])
 				// Generate Error Messages
-				if !intInSlice(te3.Code, nums[:4]) {
+				if !intInSlice(te3.Code, nums[:5]) {
 					newError(path, te3.PTID, i, te3.Type, "TE3", m["TE3"])
 				}
-				if !intInSlice(te3.Outcome, nums[:4]) {
+				if !intInSlice(te3.Outcome, nums[:5]) {
 					newError(path, te3.PTID, i, te3.Type, "TE3_OUT", m["TE3_OUT"])
 				}
-				if !intInSlice(te3.Anti, nums[:4]) && (te3.Anti != 8) {
+				if !intInSlice(te3.Anti, nums[:5]) && (te3.Anti != 8) {
 					newError(path, te3.PTID, i, te3.Type, "ANTI_TE3", m["ANTI_TE3"])
 				}
 				writeTOFile(te3)
@@ -369,7 +374,7 @@ func readExcelData(path string) {
 					Organism: m["SBE1 ORGANISM"]}
 				sbe1.Code, _ = strconv.Atoi(m["SBE1"])
 				// Generate Error Messages
-				if !intInSlice(sbe1.Code, nums[:2]) {
+				if !intInSlice(sbe1.Code, nums[:3]) {
 					newError(path, sbe1.PTID, i, sbe1.Type, "SBE1", m["SBE1"])
 				}
 				writeTOFile(sbe1)
@@ -384,7 +389,7 @@ func readExcelData(path string) {
 					Organism: m["SBE2 ORGANISM"]}
 				sbe2.Code, _ = strconv.Atoi(m["SBE2"])
 				// Generate Error Messages
-				if !intInSlice(sbe2.Code, nums[:2]) {
+				if !intInSlice(sbe2.Code, nums[:3]) {
 					newError(path, sbe2.PTID, i, sbe2.Type, "SBE2", m["SBE2"])
 				}
 				writeTOFile(sbe2)
@@ -399,7 +404,7 @@ func readExcelData(path string) {
 					Organism: m["SBE3 ORGANISM"]}
 				sbe3.Code, _ = strconv.Atoi(m["SBE3"])
 				// Generate Error Messages
-				if !intInSlice(sbe3.Code, nums[:2]) {
+				if !intInSlice(sbe3.Code, nums[:3]) {
 					newError(path, sbe3.PTID, i, sbe3.Type, "SBE3", m["SBE3"])
 				}
 				writeTOFile(sbe3)
@@ -522,7 +527,7 @@ func readExcelData(path string) {
 }
 
 func main() {
-	nums = []int{0, 1, 2, 3, 4, 5}                 // list of numbers for validate codes
+	nums = []int{0, -9, 1, 2, 3, 4, 5}             // list of numbers for validate codes
 	codes = []string{"A", "D", "L", "N", "O", "R"} // correct codes for STATUS
-	loopAllFiles("L:/CVDMC Students/valve_registry/followup fldr")
+	loopAllFiles("L:/CVDMC Students/Yilin Xie/data/excel")
 }
