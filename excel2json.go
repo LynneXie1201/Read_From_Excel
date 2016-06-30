@@ -70,7 +70,6 @@ type general struct {
 
 // Generate error messages to a file
 func errorLog(path string, j int, id string, row int, t string, field string, invalid string) {
-
 	e.Println(path, "Sheet#:", j, "PTID:", id, "Row #:", row+2, "Type:", t, "Info: Invalid", field, "Value:", invalid)
 
 }
@@ -84,7 +83,6 @@ func changeDateFormat(x string) string {
 
 // a function that writes to json files
 func writeTOFile(o interface{}) {
-
 	j, _ := json.Marshal(o)
 	jsonFile.Write(j)
 
@@ -109,7 +107,7 @@ func intInSlice(i int, list []int) bool {
 	return false
 }
 
-// Check if the excel file is a follow_up file and return the header row
+// Check if the excel sheet is a follow_up sheet and return the bollean and header row
 func checkFollowups(sheet *xlsx.Sheet) (bool, []string) {
 	//v, _ := sheet.Cell(0, 0).String()
 	//fmt.Println(v)
@@ -153,7 +151,7 @@ func loopAllFiles(dirPath string) {
 		for _, file := range fileList {
 			readExcelData(file)
 		}
-		// Close error log and json files
+		// Close errorlog file and json files
 		errLog.Close()
 		jsonFile.Close()
 	}
@@ -161,22 +159,22 @@ func loopAllFiles(dirPath string) {
 
 func readExcelData(path string) {
 
-	slices, keyList := excelToSlice(path) // s is a slice of maps
+	slices, keyList := excelToSlice(path) // slices is a slice of slices of maps
 	for j, s := range slices {
 		if s == nil {
-			// s is not a follow_up excel file
-			fmt.Println("oops! this is not a follow_up file: ", path)
+			// s is not a follow_up sheet
+			fmt.Println("oops! this is not a follow_up sheet: ", path, "sheet #:", j)
 		} else {
-			// s is a follow_up excel file
-			fmt.Println("Bingo! this is a follow_up file: ", path)
+			// s is a follow_up excel sheet
+			fmt.Println("Bingo! this is a follow_up sheet: ", path,"sheet #:",j)
 			keys := keyList[j]
-			// check PTID
+			// check PTID and STATUS
 			checkPTID(path, j, keys)
 			checkStatus(path, j, keys)
 			for i, m := range s {
 				// check PTID
 				if m[id1] != m[id2] {
-					assignNonEmptyPTID(path, i, j, m[id1], m[id2])
+					assignPTID(path, i, j, m[id1], m[id2])
 				}
 				if len(m[id1]) != 10 {
 					e.Println(path, "Sheet#", j, "PTID:", m[id1], "row #", i+2, "Invalid Format of PTID!")
@@ -189,7 +187,7 @@ func readExcelData(path string) {
 				}
 				// Check STATUS
 				if m[s1] != m[s2] {
-					assignNonEmptyStatus(path, i, j, m[s1], m[s2])
+					assignStatus(path, i, j, m[s1], m[s2])
 				}
 				// Event follow_up
 				if m["FU_D"] != "" {
@@ -203,7 +201,7 @@ func readExcelData(path string) {
 						Notes:         m["NOTES"],
 						LostOnDate:    m["STATUS=L DATE"],
 						OtherNote:     m["STATUS=O REASON"]}
-					// check if these 3 coloms empty or not
+					// check if these 3 columns are empty or not
 					if m["COAG"] != "" {
 						fU.Coag, _ = strconv.Atoi(m["COAG"])
 					} else {
@@ -709,7 +707,7 @@ func checkStatus(path string, j int, keys []string) {
 	}
 }
 
-func assignNonEmptyStatus(path string, i int, j int, s1 string, s2 string) {
+func assignStatus(path string, i int, j int, s1 string, s2 string) {
 	if s1 != "" && s2 != "" {
 		e.Println(path, "Sheet#", j, "Row #:", i+2, "INFO: Different status values: ", s1, s2)
 	} else if s1 == "" {
@@ -718,7 +716,7 @@ func assignNonEmptyStatus(path string, i int, j int, s1 string, s2 string) {
 
 }
 
-func assignNonEmptyPTID(path string, i int, j int, d1 string, d2 string) {
+func assignPTID(path string, i int, j int, d1 string, d2 string) {
 	if d1 != "" && d2 != "" {
 		e.Println(path, "Sheet#", j, "Row #:", i+2, "INFO: Different PTID Values: ", d1, d2)
 	} else if d1 == "" {
