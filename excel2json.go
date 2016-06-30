@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"excel/helper"
 	"fmt"
 	"log"
 	"os"
@@ -9,7 +10,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/tealeg/xlsx"
 )
@@ -74,37 +74,11 @@ func errorLog(path string, j int, id string, row int, t string, field string, in
 
 }
 
-// Change the date Format to YYYY-MM-DD
-func changeDateFormat(x string) string {
-	value := strings.Replace(x, "\\", "", -1)
-	test, _ := time.Parse("02-Jan-06", value)
-	return test.Format("2006-01-02")
-}
-
 // a function that writes to json files
 func writeTOFile(o interface{}) {
 	j, _ := json.Marshal(o)
 	jsonFile.Write(j)
 
-}
-
-// Check if a slice contains a certain string value
-func stringInSlice(str string, list []string) bool {
-	for _, v := range list {
-		if v == str {
-			return true
-		}
-	}
-	return false
-}
-
-func intInSlice(i int, list []int) bool {
-	for _, v := range list {
-		if v == i {
-			return true
-		}
-	}
-	return false
 }
 
 // Check if the excel sheet is a follow_up sheet and return the bollean and header row
@@ -120,7 +94,7 @@ func checkFollowups(sheet *xlsx.Sheet) (bool, []string) {
 		}
 		break
 	}
-	if stringInSlice("FU_D", keys) && stringInSlice("DIED", keys) && stringInSlice("DTH_D", keys) {
+	if helper.StringInSlice("FU_D", keys) && helper.StringInSlice("DIED", keys) && helper.StringInSlice("DTH_D", keys) {
 		return true, keys
 	}
 	//fmt.Println(keys)
@@ -138,13 +112,13 @@ func loopAllFiles(dirPath string) {
 	})
 	if err == nil {
 		// Open a file for error logs
-		errLog, err := os.OpenFile("PATH_TO_ERRORLOG_FILE", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		errLog, err := os.OpenFile("", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		checkErr(err) // check for errors
 		defer errLog.Close()
 		// Create a new logger
 		e = log.New(errLog, "ERROR: ", 0)
 		//Create a json file to store data from reading excel files
-		jsonFile, err = os.OpenFile("PATH_TO_JSON_FILE", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		jsonFile, err = os.OpenFile("", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		checkErr(err) // check for errors
 		defer jsonFile.Close()
 		// Loop through all excel files
@@ -166,7 +140,7 @@ func readExcelData(path string) {
 			fmt.Println("oops! this is not a follow_up sheet: ", path, "sheet #:", j)
 		} else {
 			// s is a follow_up excel sheet
-			fmt.Println("Bingo! this is a follow_up sheet: ", path,"sheet #:",j)
+			fmt.Println("Bingo! this is a follow_up sheet: ", path, "sheet #:", j)
 			keys := keyList[j]
 			// check PTID and STATUS
 			checkPTID(path, j, keys)
@@ -219,16 +193,16 @@ func readExcelData(path string) {
 					}
 
 					// Validate fields' values
-					if !stringInSlice(fU.Status, codes) {
+					if !helper.StringInSlice(fU.Status, codes) {
 						errorLog(path, j, fU.PTID, i, fU.Type, "Status", fU.Status)
 					}
-					if !intInSlice(fU.PoNYHA, nums[1:6]) {
+					if !helper.IntInSlice(fU.PoNYHA, nums[1:6]) {
 						errorLog(path, j, fU.PTID, i, fU.Type, "PO_NYHA", m["PO_NYHA"])
 					}
-					if !intInSlice(fU.Coag, nums[:3]) {
+					if !helper.IntInSlice(fU.Coag, nums[:3]) {
 						errorLog(path, j, fU.PTID, i, fU.Type, "COAG", m["COAG"])
 					}
-					if !intInSlice(fU.Plat, nums[:3]) {
+					if !helper.IntInSlice(fU.Plat, nums[:3]) {
 						errorLog(path, j, fU.PTID, i, fU.Type, "PLAT", m["PLAT"])
 					}
 					writeTOFile(fU)                         // write this object to the json file
@@ -262,10 +236,10 @@ func readExcelData(path string) {
 					}
 
 					// Validate fields' values
-					if !intInSlice(d.Code, nums[:3]) {
+					if !helper.IntInSlice(d.Code, nums[:3]) {
 						errorLog(path, j, d.PTID, i, d.Type, "DIED", m["DIED"])
 					}
-					if !intInSlice(d.PrmDth, nums[:6]) {
+					if !helper.IntInSlice(d.PrmDth, nums[:6]) {
 						errorLog(path, j, d.PTID, i, d.Type, "PRM_DTH", m["PRM_DTH"])
 					}
 					writeTOFile(d)
@@ -293,7 +267,7 @@ func readExcelData(path string) {
 					}
 
 					// Validate fields' values
-					if !intInSlice(re.Code, nums[:3]) {
+					if !helper.IntInSlice(re.Code, nums[:3]) {
 						errorLog(path, j, re.PTID, i, re.Type, "FUREOP", m["FUREOP"])
 					}
 					if m[s1] == "R" && (re.Code != 1 || m["FUREOP_D"] == "") {
@@ -326,13 +300,13 @@ func readExcelData(path string) {
 					}
 
 					// Generate Error Messages
-					if !intInSlice(te1.Code, nums[:5]) {
+					if !helper.IntInSlice(te1.Code, nums[:5]) {
 						errorLog(path, j, te1.PTID, i, te1.Type, "TE1", m["TE1"])
 					}
-					if !intInSlice(te1.Outcome, nums[:5]) {
+					if !helper.IntInSlice(te1.Outcome, nums[:5]) {
 						errorLog(path, j, te1.PTID, i, te1.Type, "TE1_OUT", m["TE1_OUT"])
 					}
-					if !intInSlice(te1.Anti, nums[:5]) && (te1.Anti != 8) {
+					if !helper.IntInSlice(te1.Anti, nums[:5]) && (te1.Anti != 8) {
 						errorLog(path, j, te1.PTID, i, te1.Type, "ANTI_TE1", m["ANTI_TE1"])
 					}
 					writeTOFile(te1)
@@ -360,13 +334,13 @@ func readExcelData(path string) {
 					}
 
 					// Generate Error Messages
-					if !intInSlice(te2.Code, nums[:5]) {
+					if !helper.IntInSlice(te2.Code, nums[:5]) {
 						errorLog(path, j, te2.PTID, i, te2.Type, "TE2", m["TE2"])
 					}
-					if !intInSlice(te2.Outcome, nums[:5]) {
+					if !helper.IntInSlice(te2.Outcome, nums[:5]) {
 						errorLog(path, j, te2.PTID, i, te2.Type, "TE2_OUT", m["TE2_OUT"])
 					}
-					if !intInSlice(te2.Anti, nums[:5]) && (te2.Anti != 8) {
+					if !helper.IntInSlice(te2.Anti, nums[:5]) && (te2.Anti != 8) {
 						errorLog(path, j, te2.PTID, i, te2.Type, "ANTI_TE2", m["ANTI_TE2"])
 					}
 					writeTOFile(te2)
@@ -394,13 +368,13 @@ func readExcelData(path string) {
 					}
 
 					// Generate Error Messages
-					if !intInSlice(te3.Code, nums[:5]) {
+					if !helper.IntInSlice(te3.Code, nums[:5]) {
 						errorLog(path, j, te3.PTID, i, te3.Type, "TE3", m["TE3"])
 					}
-					if !intInSlice(te3.Outcome, nums[:5]) {
+					if !helper.IntInSlice(te3.Outcome, nums[:5]) {
 						errorLog(path, j, te3.PTID, i, te3.Type, "TE3_OUT", m["TE3_OUT"])
 					}
-					if !intInSlice(te3.Anti, nums[:5]) && (te3.Anti != 8) {
+					if !helper.IntInSlice(te3.Anti, nums[:5]) && (te3.Anti != 8) {
 						errorLog(path, j, te3.PTID, i, te3.Type, "ANTI_TE3", m["ANTI_TE3"])
 					}
 					writeTOFile(te3)
@@ -453,7 +427,7 @@ func readExcelData(path string) {
 					}
 
 					// Generate Error Messages
-					if !intInSlice(sbe1.Code, nums[:3]) {
+					if !helper.IntInSlice(sbe1.Code, nums[:3]) {
 						errorLog(path, j, sbe1.PTID, i, sbe1.Type, "SBE1", m["SBE1"])
 					}
 					writeTOFile(sbe1)
@@ -473,7 +447,7 @@ func readExcelData(path string) {
 					}
 
 					// Generate Error Messages
-					if !intInSlice(sbe2.Code, nums[:3]) {
+					if !helper.IntInSlice(sbe2.Code, nums[:3]) {
 						errorLog(path, j, sbe2.PTID, i, sbe2.Type, "SBE2", m["SBE2"])
 					}
 					writeTOFile(sbe2)
@@ -493,7 +467,7 @@ func readExcelData(path string) {
 					}
 
 					// Generate Error Messages
-					if !intInSlice(sbe3.Code, nums[:3]) {
+					if !helper.IntInSlice(sbe3.Code, nums[:3]) {
 						errorLog(path, j, sbe3.PTID, i, sbe3.Type, "SBE3", m["SBE3"])
 					}
 					writeTOFile(sbe3)
@@ -574,7 +548,7 @@ func readExcelData(path string) {
 					}
 
 					// Generate Error Messages
-					if !intInSlice(arh1.Code, nums[:]) {
+					if !helper.IntInSlice(arh1.Code, nums[:]) {
 						errorLog(path, j, arh1.PTID, i, arh1.Type, "ARH1", m["ARH1"])
 					}
 					writeTOFile(arh1)
@@ -593,7 +567,7 @@ func readExcelData(path string) {
 					}
 
 					// Generate Error Messages
-					if !intInSlice(arh2.Code, nums[:]) {
+					if !helper.IntInSlice(arh2.Code, nums[:]) {
 						errorLog(path, j, arh2.PTID, i, arh2.Type, "ARH2", m["ARH2"])
 					}
 					writeTOFile(arh2)
@@ -753,7 +727,7 @@ func excelToSlice(excelFilePath string) ([][]map[string]string, [][]string) {
 				for j, cell := range row.Cells {
 					value, _ := cell.String()
 					if strings.Contains(value, "\\") {
-						value = changeDateFormat(value)
+						value = helper.ChangeDateFormat(value)
 					}
 					if value == "9" {
 						value = "-9"
@@ -775,5 +749,5 @@ func excelToSlice(excelFilePath string) ([][]map[string]string, [][]string) {
 func main() {
 	nums = []int{0, -9, 1, 2, 3, 4, 5}                 // list of numbers for validate codes
 	codes = []string{"A", "D", "L", "N", "O", "R", ""} // correct codes for STATUS
-	loopAllFiles("PATH_TO_YOUR_FOLDER")
+	loopAllFiles("")
 }
