@@ -16,10 +16,10 @@ import (
 )
 
 var (
-	allFollowUps []followUp    // store followUp events
+	allFollowUps []followUp    // store follow up events
 	allLKA       []lkaDate     // store last known alive date events
 	allDths      []death       // store death events
-	allReOper    []reOperation // store reoperation events
+	allReOper    []reOperation // store re-operation events
 	allTE        []te          // store TE events
 	allSBE       []sbe         // store SBE events
 	events       []general     //store events including FUMI, FUPACE, SVD, PVL, DVT, ARH, THRM, HEML
@@ -36,36 +36,36 @@ var (
 	jsonPath     string   // path to the json file
 )
 
-// Create different ypes of events
+// Type of follow-up event
 type followUp struct {
 	PTID, Type, Date, Status, NoneValveReop, FuNotes, Notes, LostOnDate, OtherNote string
 	Plat, Coag, PoNYHA                                                             int
 }
-
+// Type of last known alive date event
 type lkaDate struct {
 	PTID, Type, Date string
 }
-
+// Type of death event
 type death struct {
 	PTID, Type, Date, Reason string
 	Code, PrmDth             int
 }
-
+// Type of re-operation event 
 type reOperation struct {
 	PTID, Type, Date, Reason, Surgery, Notes string
 	Code, Survival                           int
 }
-
+// Type of TE event
 type te struct {
 	PTID, Type, Date    string
 	Code, Outcome, Anti int
 }
-
+// Type of SBE event
 type sbe struct {
 	PTID, Type, Date, Organism string
 	Code                       int
 }
-
+// Type of events including FUMI, FUPACE, SVD, PVL, DVT, ARH, THRM, HEML
 type general struct {
 	PTID, Type, Date string
 	Code             int
