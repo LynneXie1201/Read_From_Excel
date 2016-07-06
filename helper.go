@@ -15,12 +15,6 @@ import (
 	"github.com/tealeg/xlsx"
 )
 
-var (
-	// ErrlogPath is the path to the error log file
-	ErrlogPath string
-	e          *log.Logger
-)
-
 // CheckDateFormat changes the date format to YYYY-MM-DD
 func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column string, s string) string {
 	value := strings.Replace(s, "\\", "", -1)
