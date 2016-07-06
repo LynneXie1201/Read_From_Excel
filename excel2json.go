@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -26,7 +25,6 @@ var (
 	id2          string        // value of the second PTID column
 	s1           string        // value of the first Status column
 	s2           string        // value of the second Status column
-	
 )
 
 // Create different ypes of events
@@ -88,7 +86,6 @@ func CheckPtidColumns(e *log.Logger, path string, j int, keys []string) {
 		errlog.Invalid(e, 0, path, j)
 		os.Exit(1) // exit if it has invaid columns of PTID
 	}
-
 }
 
 // CheckStatusColumns checks the number of STATUS columns,
@@ -181,21 +178,9 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						LostOnDate:    m["STATUS=L DATE"],
 						OtherNote:     m["STATUS=O REASON"]}
 					// check if these 3 columns are empty or not
-					if m["COAG"] != "" {
-						fU.Coag, _ = strconv.Atoi(m["COAG"])
-					} else {
-						fU.Coag = -9
-					}
-					if m["PO_NYHA"] != "" {
-						fU.PoNYHA, _ = strconv.Atoi(m["PO_NYHA"])
-					} else {
-						fU.PoNYHA = -9
-					}
-					if m["PLAT"] != "" {
-						fU.Plat, _ = strconv.Atoi(m["PLAT"])
-					} else {
-						fU.Plat = -9
-					}
+					helper.CheckEmpty(fU.Coag, m["COAG"], e)
+					helper.CheckEmpty(fU.PoNYHA, m["PO_NYHA"], e)
+					helper.CheckEmpty(fU.Plat, m["PLAT"], e)
 
 					// Validate fields' values
 					if !helper.StringInSlice(fU.Status, codes) {
@@ -229,16 +214,9 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						Type:   "death",
 						Date:   helper.CheckDateFormat(e, path, j, i, "DTH_Date", m["DTH_D"]),
 						Reason: m["REASDTH"]}
-					if m["PRM_DTH"] != "" {
-						d.PrmDth, _ = strconv.Atoi(m["PRM_DTH"])
-					} else {
-						d.PrmDth = -9
-					}
-					if m["DIED"] != "" {
-						d.Code, _ = strconv.Atoi(m["DIED"])
-					} else {
-						d.Code = -9
-					}
+
+					helper.CheckEmpty(d.PrmDth, m["PRM_DTH"], e)
+					helper.CheckEmpty(d.Code, m["DIED"], e)
 
 					// Validate fields' values
 					if !helper.IntInSlice(d.Code, nums[:3]) {
@@ -260,16 +238,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						Reason:  m["REASREOP"],
 						Surgery: m["REOPSURG"],
 						Notes:   m["REOPNOTES"]}
-					if m["FUREOP"] != "" {
-						re.Code, _ = strconv.Atoi(m["FUREOP"])
-					} else {
-						re.Code = -9
-					}
-					if m["REOPSURVIVAL"] != "" {
-						re.Survival, _ = strconv.Atoi(m["REOPSURVIVAL"])
-					} else {
-						re.Survival = -9
-					}
+					helper.CheckEmpty(re.Code, m["FUREOP"], e)
+					helper.CheckEmpty(re.Survival, m["REOPSURVIVAL"], e)
 
 					// Validate fields' values
 					if !helper.IntInSlice(re.Code, nums[:3]) {
@@ -288,21 +258,10 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "TE",
 						Date: helper.CheckDateFormat(e, path, j, i, "TE1_Date", m["TE1_D"])}
-					if m["TE1"] != "" {
-						te1.Code, _ = strconv.Atoi(m["TE1"])
-					} else {
-						te1.Code = -9
-					}
-					if m["TE1_OUT"] != "" {
-						te1.Outcome, _ = strconv.Atoi(m["TE1_OUT"])
-					} else {
-						te1.Outcome = -9
-					}
-					if m["ANTI_TE1"] != "" {
-						te1.Anti, _ = strconv.Atoi(m["ANTI_TE1"])
-					} else {
-						te1.Anti = -9
-					}
+
+					helper.CheckEmpty(te1.Code, m["TE1"], e)
+					helper.CheckEmpty(te1.Outcome, m["TE1_OUT"], e)
+					helper.CheckEmpty(te1.Anti, m["ANTI_TE1"], e)
 
 					// Generate Error Messages
 					if !helper.IntInSlice(te1.Code, nums[:5]) {
@@ -322,21 +281,10 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "TE",
 						Date: helper.CheckDateFormat(e, path, j, i, "TE2_Date", m["TE2_D"])}
-					if m["TE2"] != "" {
-						te2.Code, _ = strconv.Atoi(m["TE2"])
-					} else {
-						te2.Code = -9
-					}
-					if m["TE2_OUT"] != "" {
-						te2.Outcome, _ = strconv.Atoi(m["TE2_OUT"])
-					} else {
-						te2.Outcome = -9
-					}
-					if m["ANTI_TE2"] != "" {
-						te2.Anti, _ = strconv.Atoi(m["ANTI_TE2"])
-					} else {
-						te2.Anti = -9
-					}
+
+					helper.CheckEmpty(te2.Code, m["TE2"], e)
+					helper.CheckEmpty(te2.Outcome, m["TE2_OUT"], e)
+					helper.CheckEmpty(te2.Anti, m["ANTI_TE2"], e)
 
 					// Generate Error Messages
 					if !helper.IntInSlice(te2.Code, nums[:5]) {
@@ -356,21 +304,10 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "TE",
 						Date: helper.CheckDateFormat(e, path, j, i, "TE3_Date", m["TE3_D"])}
-					if m["TE3"] != "" {
-						te3.Code, _ = strconv.Atoi(m["TE3"])
-					} else {
-						te3.Code = -9
-					}
-					if m["TE3_OUT"] != "" {
-						te3.Outcome, _ = strconv.Atoi(m["TE3_OUT"])
-					} else {
-						te3.Outcome = -9
-					}
-					if m["ANTI_TE3"] != "" {
-						te3.Anti, _ = strconv.Atoi(m["ANTI_TE3"])
-					} else {
-						te3.Anti = -9
-					}
+
+					helper.CheckEmpty(te3.Code, m["TE3"], e)
+					helper.CheckEmpty(te3.Outcome, m["TE3_OUT"], e)
+					helper.CheckEmpty(te3.Anti, m["ANTI_TE3"], e)
 
 					// Generate Error Messages
 					if !helper.IntInSlice(te3.Code, nums[:5]) {
@@ -392,11 +329,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "FUMI",
 						Date: helper.CheckDateFormat(e, path, j, i, "FUMI_Date", m["FUMI_D"])}
-					if m["FUMI"] != "" {
-						f1.Code, _ = strconv.Atoi(m["FUMI"])
-					} else {
-						f1.Code = -9
-					}
+
+					helper.CheckEmpty(f1.Code, m["FUMI"], e)
 
 					helper.WriteTOFile(jsonFile, f1)
 					events = append(events, f1)
@@ -408,11 +342,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "FUPACE",
 						Date: helper.CheckDateFormat(e, path, j, i, "FUPACE_Date", m["FUPACE_D"])}
-					if m["FUPACE"] != "" {
-						f2.Code, _ = strconv.Atoi(m["FUPACE"])
-					} else {
-						f2.Code = -9
-					}
+
+					helper.CheckEmpty(f2.Code, m["FUPACE"], e)
 
 					helper.WriteTOFile(jsonFile, f2)
 					events = append(events, f2)
@@ -425,11 +356,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						Type:     "SBE",
 						Date:     helper.CheckDateFormat(e, path, j, i, "SBE1_Date", m["SBE1_D"]),
 						Organism: m["SBE1 ORGANISM"]}
-					if m["SBE1"] != "" {
-						sbe1.Code, _ = strconv.Atoi(m["SBE1"])
-					} else {
-						sbe1.Code = -9
-					}
+					helper.CheckEmpty(sbe1.Code, m["SBE1"], e)
 
 					// Generate Error Messages
 					if !helper.IntInSlice(sbe1.Code, nums[:3]) {
@@ -445,11 +372,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						Type:     "SBE",
 						Date:     helper.CheckDateFormat(e, path, j, i, "SBE2_Date", m["SBE2_D"]),
 						Organism: m["SBE2 ORGANISM"]}
-					if m["SBE2"] != "" {
-						sbe2.Code, _ = strconv.Atoi(m["SBE2"])
-					} else {
-						sbe2.Code = -9
-					}
+					helper.CheckEmpty(sbe2.Code, m["SBE2"], e)
 
 					// Generate Error Messages
 					if !helper.IntInSlice(sbe2.Code, nums[:3]) {
@@ -465,11 +388,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						Type:     "SBE",
 						Date:     helper.CheckDateFormat(e, path, j, i, "SBE3_Date", m["SBE3_D"]),
 						Organism: m["SBE3 ORGANISM"]}
-					if m["SBE3"] != "" {
-						sbe3.Code, _ = strconv.Atoi(m["SBE3"])
-					} else {
-						sbe3.Code = -9
-					}
+
+					helper.CheckEmpty(sbe3.Code, m["SBE3"], e)
 
 					// Generate Error Messages
 					if !helper.IntInSlice(sbe3.Code, nums[:3]) {
@@ -485,11 +405,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "SVD",
 						Date: helper.CheckDateFormat(e, path, j, i, "SVD_Date", m["SVD_D"])}
-					if m["SVD"] != "" {
-						s4.Code, _ = strconv.Atoi(m["SVD"])
-					} else {
-						s4.Code = -9
-					}
+
+					helper.CheckEmpty(s4.Code, m["SVD"], e)
 
 					helper.WriteTOFile(jsonFile, s4)
 					events = append(events, s4)
@@ -500,11 +417,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "PVL",
 						Date: helper.CheckDateFormat(e, path, j, i, "PVL1_Date", m["PVL1_D"])}
-					if m["PVL1"] != "" {
-						pvl1.Code, _ = strconv.Atoi(m["PVL1"])
-					} else {
-						pvl1.Code = -9
-					}
+
+					helper.CheckEmpty(pvl1.Code, m["PVL1"], e)
 
 					helper.WriteTOFile(jsonFile, pvl1)
 					events = append(events, pvl1)
@@ -515,11 +429,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "PVL",
 						Date: helper.CheckDateFormat(e, path, j, i, "PVL2_Date", m["PVL2_D"])}
-					if m["PVL2"] != "" {
-						pvl2.Code, _ = strconv.Atoi(m["PVL2"])
-					} else {
-						pvl2.Code = -9
-					}
+					helper.CheckEmpty(pvl2.Code, m["PVL2"], e)
 
 					helper.WriteTOFile(jsonFile, pvl2)
 					events = append(events, pvl2)
@@ -531,11 +441,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "DVT",
 						Date: helper.CheckDateFormat(e, path, j, i, "DVT_Date", m["DVT_D"])}
-					if m["DVT"] != "" {
-						d1.Code, _ = strconv.Atoi(m["DVT"])
-					} else {
-						d1.Code = -9
-					}
+
+					helper.CheckEmpty(d1.Code, m["DVT"], e)
 
 					helper.WriteTOFile(jsonFile, d1)
 					events = append(events, d1)
@@ -546,11 +453,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "ARH",
 						Date: helper.CheckDateFormat(e, path, j, i, "ARH1_Date", m["ARH1_D"])}
-					if m["ARH1"] != "" {
-						arh1.Code, _ = strconv.Atoi(m["ARH1"])
-					} else {
-						arh1.Code = -9
-					}
+					helper.CheckEmpty(arh1.Code, m["ARH1"], e)
 
 					// Generate Error Messages
 					if !helper.IntInSlice(arh1.Code, nums[:]) {
@@ -565,11 +468,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "ARH",
 						Date: helper.CheckDateFormat(e, path, j, i, "ARH2_Date", m["ARH2_D"])}
-					if m["ARH2"] != "" {
-						arh2.Code, _ = strconv.Atoi(m["ARH2"])
-					} else {
-						arh2.Code = -9
-					}
+					helper.CheckEmpty(arh2.Code, m["ARH2"], e)
 
 					// Generate Error Messages
 					if !helper.IntInSlice(arh2.Code, nums[:]) {
@@ -585,11 +484,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "THRM",
 						Date: helper.CheckDateFormat(e, path, j, i, "THRM1_Date", m["THRM1_D"])}
-					if m["THRM1"] != "" {
-						thrm1.Code, _ = strconv.Atoi(m["THRM1"])
-					} else {
-						thrm1.Code = -9
-					}
+
+					helper.CheckEmpty(thrm1.Code, m["THRM1"], e)
 
 					helper.WriteTOFile(jsonFile, thrm1)
 					events = append(events, thrm1)
@@ -600,11 +496,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "THRM",
 						Date: helper.CheckDateFormat(e, path, j, i, "THRM2_Date", m["THRM2_D"])}
-					if m["THRM2"] != "" {
-						thrm2.Code, _ = strconv.Atoi(m["THRM2"])
-					} else {
-						thrm2.Code = -9
-					}
+					helper.CheckEmpty(thrm2.Code, m["THRM2"], e)
 
 					helper.WriteTOFile(jsonFile, thrm2)
 					events = append(events, thrm2)
@@ -616,11 +508,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "HEML",
 						Date: helper.CheckDateFormat(e, path, j, i, "HEML1_Date", m["HEML1_D"])}
-					if m["HEML1"] != "" {
-						heml1.Code, _ = strconv.Atoi(m["HEML1"])
-					} else {
-						heml1.Code = -9
-					}
+
+					helper.CheckEmpty(heml1.Code, m["HEML1"], e)
 
 					helper.WriteTOFile(jsonFile, heml1)
 					events = append(events, heml1)
@@ -631,12 +520,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID: m[id1],
 						Type: "HEML",
 						Date: helper.CheckDateFormat(e, path, j, i, "HEML2_Date", m["HEML2_D"])}
-					if m["HEML2"] != "" {
-						heml2.Code, _ = strconv.Atoi(m["HEML2"])
-					} else {
-						heml2.Code = -9
-					}
-
+					helper.CheckEmpty(heml2.Code, m["HEML2"], e)
 					helper.WriteTOFile(jsonFile, heml2)
 					events = append(events, heml2)
 				}
