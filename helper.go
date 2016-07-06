@@ -4,11 +4,11 @@ package helper
 import (
 	"encoding/json"
 	"excel/errlog"
-	"os"
-
 	"fmt"
 	"log"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,9 +20,13 @@ func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column stri
 	value := strings.Replace(s, "\\", "", -1)
 	value = strings.Replace(value, ";", "", -1)
 	value = strings.Replace(value, "@", "", -1)
+	// YYYY-MM-DD
 	matched1, _ := regexp.MatchString("^[0-9]{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])$", value)
+	// DD-MMM-YY
 	matched2, _ := regexp.MatchString("^(0?[1-9]|[12][0-9]|3[01])-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-[0-9]{2}$", value)
+	// MM-DD-YY
 	matched3, _ := regexp.MatchString("^(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])-[0-9]{2}$", value)
+	// YYYY/MM/DD
 	matched4, _ := regexp.MatchString("^[0-9]{4}/(0?[1-9]|1[012])/(0?[1-9]|[12][0-9]|3[01])$", value)
 	if matched1 {
 		return value
@@ -31,7 +35,6 @@ func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column stri
 		if err != nil {
 			errlog.Differ(e, 5, path, sheet, row, column, value)
 		}
-
 		return t.Format("2006-01-02")
 	} else if matched3 {
 		t, err := time.Parse("01-02-06", value)
@@ -84,24 +87,29 @@ func CheckErr(e *log.Logger, err error) {
 // AssignStatus assigns a non empty Status value to the the other one
 // if a file has two columns of Status and one of them is empty;
 // reports an error message if two columns have different values and none of them is empty.
-func AssignStatus(e *log.Logger, path string, i int, j int, s1 string, s2 string) {
-	if s1 != "" && s2 != "" {
-		errlog.Differ(e, 0, path, j, i, s1, s2)
-	} else if s1 == "" {
-		s1 = s2
+func AssignStatus(e *log.Logger, path string, i int, j int, s1 *string, s2 *string) error {
+	if *s1 != "" && *s2 != "" {
+		errlog.Differ(e, 0, path, j, i, *s1, *s2)
+		return fmt.Errorf("The two values are different: %s , %s", *s1, *s2)
+	} else if *s1 == "" {
+		*s1 = *s2
+		return nil
 	}
+	return nil
 }
 
 // AssignPTID assigns a non empty PTID value to the the other one
 // if a file has two columns of Status and one of them is empty;
 // reports an error message if two columns have different values and none of them is empty.
-func AssignPTID(e *log.Logger, path string, i int, j int, d1 string, d2 string) {
-	if d1 != "" && d2 != "" {
-		errlog.Differ(e, 1, path, j, i, d1, d2)
-	} else if d1 == "" {
-		d1 = d2
+func AssignPTID(e *log.Logger, path string, i int, j int, d1 *string, d2 *string) error {
+	if *d1 != "" && *d2 != "" {
+		errlog.Differ(e, 1, path, j, i, *d1, *d2)
+		return fmt.Errorf("The two values are different: %s , %s", *d1, *d2)
+	} else if *d1 == "" {
+		*d1 = *d2
+		return nil
 	}
-
+	return nil
 }
 
 // CheckFollowups checks if the excel sheet is a follow_up sheet;
@@ -186,4 +194,13 @@ func WriteTOFile(jsonFile *os.File, o interface{}) {
 	}
 	jsonFile.Write(j)
 
+}
+
+// CheckEmpty is
+func CheckEmpty(value1 *int, value2 string) {
+	if value2 != "" {
+		*value1, _ = strconv.Atoi(value2)
+	} else {
+		*value1 = -9
+	}
 }
