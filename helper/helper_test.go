@@ -33,7 +33,7 @@ func TestCheckDateFormatOne(t *testing.T) {
 	d := CheckDateFormat(e, path, sheet, row, column, date)
 	matched := strings.Compare("1980-09-27", d)
 	if matched != 0 {
-		t.Error("Everything I know is wrong!")
+		t.Error("Expected:", "1980-09-27", "got:", d)
 	}
 }
 
@@ -44,7 +44,7 @@ func TestCheckDateFormatTwo(t *testing.T) {
 	d := CheckDateFormat(e, path, sheet, row, column, date)
 	matched := strings.Compare("1980-09-27", d)
 	if matched != 0 {
-		t.Error("Everything I know is wrong!")
+		t.Error("Expected:", "1980-09-27", "got:", d)
 	}
 }
 
@@ -55,7 +55,7 @@ func TestCheckDateFormatThree(t *testing.T) {
 	d := CheckDateFormat(e, path, sheet, row, column, date)
 	matched := strings.Compare("1980-09-27", d)
 	if matched != 0 {
-		t.Error("Everything I know is wrong!")
+		t.Error("Expected:", "1980-09-27", "got:", d)
 	}
 }
 
@@ -66,56 +66,61 @@ func TestCheckDateFormatFour(t *testing.T) {
 	d := CheckDateFormat(e, path, sheet, row, column, date)
 	matched := strings.Compare("1980-09-27", d)
 	if matched != 0 {
-		t.Error("Everything I know is wrong!")
+		t.Error("Expected:", "1980-09-27", "got:", d)
 	}
 }
 
+// TestStringInSliceOne
 func TestStringInSliceOne(t *testing.T) {
 	t.Log("Test for StringInSlice")
 	s := "a"
 	slice := []string{"a", "b", "c"}
 	bool := StringInSlice(s, slice)
 	if !bool {
-		t.Error("Everything I know is wrong!")
+		t.Error("Something goes wrong: the slice should contain the string!")
 	}
 }
 
+// TestStringInSliceTwo
 func TestStringInSliceTwo(t *testing.T) {
 	t.Log("Test for StringInSlice")
 	s := "a"
 	slice := []string{":", "b", "c"}
 	bool := StringInSlice(s, slice)
 	if bool {
-		t.Error("Everything I know is wrong!")
+		t.Error("Something goes wrong: the slice should not contain the string!")
 	}
 }
 
+// TestIntInSliceOne
 func TestIntInSliceOne(t *testing.T) {
 	t.Log("Test for IntInSlice")
 	s := 1
 	slice := []int{1, 2, 4}
 	bool := IntInSlice(s, slice)
 	if !bool {
-		t.Error("Everything I know is wrong!")
+		t.Error("Something goes wrong: the slice should contain the int!")
 	}
 }
 
+// TestIntInSliceTwo
 func TestIntInSliceTwo(t *testing.T) {
 	t.Log("Test for IntInSlice")
 	s := 1
 	slice := []int{2, 4}
 	bool := IntInSlice(s, slice)
 	if bool {
-		t.Error("Everything I know is wrong!")
+		t.Error("Something goes wrong: the slice should not contain the int!")
 	}
 }
 
+// TestAssignStatusOne
 func TestAssignStatusOne(t *testing.T) {
 	t.Log("Test for AssignStatus - 2 different non empty values")
 	s1, s2 := "aa", "bb"
 	err := AssignStatus(e, path, row, sheet, &s1, &s2)
 	if err == nil {
-		t.Error(err)
+		t.Error("Something goes wrong here!")
 	}
 
 }
@@ -135,7 +140,7 @@ func TestAssignStatusThree(t *testing.T) {
 	s2, s1 := "", "bb"
 	err := AssignStatus(e, path, row, sheet, &s1, &s2)
 	if s1 != "bb" || err != nil {
-		t.Error(s1)
+		t.Error("Expected:", s1, "got:", s1)
 	}
 }
 
@@ -144,7 +149,7 @@ func TestAssignPTIDOne(t *testing.T) {
 	s1, s2 := "aa", "bb"
 	err := AssignPTID(e, path, row, sheet, &s1, &s2)
 	if err == nil {
-		t.Error(err)
+		t.Error("Something goes wrong here!")
 	}
 }
 
@@ -163,7 +168,7 @@ func TestAssignPTIDThree(t *testing.T) {
 	s2, s1 := "", "bb"
 	err := AssignPTID(e, path, row, sheet, &s1, &s2)
 	if s1 != "bb" || err != nil {
-		t.Error(s1)
+		t.Error("Expected:", s1, "got:", s1)
 	}
 }
 
