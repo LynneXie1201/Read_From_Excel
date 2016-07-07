@@ -19,7 +19,7 @@ func ErrorLog(e *log.Logger, path string, j int, id string, row int, t string, f
 
 }
 
-// PrintErr prints the error messages using logger e
+// PrintErr prints the error messages of err using the logger e.
 func PrintErr(e *log.Logger, err error) {
 	e.Println(err)
 }
