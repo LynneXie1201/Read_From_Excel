@@ -70,6 +70,17 @@ func TestCheckDateFormatFour(t *testing.T) {
 	}
 }
 
+// TestCheckDateFormatFive
+func TestCheckDateFormatFive(t *testing.T) {
+	t.Log("Test for invalid date format")
+	date = "This is wrong!"
+	d := CheckDateFormat(e, path, sheet, row, column, date)
+	matched := strings.Compare("This is wrong!", d)
+	if matched != 0 {
+		t.Error("Expected:", "This is wrong!", "got:", d)
+	}
+}
+
 // TestStringInSliceOne
 func TestStringInSliceOne(t *testing.T) {
 	t.Log("Test for StringInSlice")
