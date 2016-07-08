@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aswjh/excel"
 	"github.com/tealeg/xlsx"
 )
 
@@ -110,31 +111,48 @@ func AssignPTID(e *log.Logger, path string, i int, j int, d1 *string, d2 *string
 	return nil
 }
 
+// CheckHeaderRow checks if the header rows cannot be read,
+// then use a package to open the file and save it.
+func CheckHeaderRow(xlFile *xlsx.File, path string) {
+
+	// Check if the header row is empty
+	v, _ := xlFile.Sheets[0].Cell(0, 0).String()
+	// if the header rows cannot be read, use a package to open the file and then save it.
+	if v == "" {
+		option := excel.Option{"Visible": true, "DisplayAlerts": true}
+		xl, _ := excel.Open(path, option)
+		defer xl.Quit()
+		xl.Save()
+		xl.Quit()
+	}
+
+}
+
 // CheckFollowups checks if the excel sheet is a follow_up sheet.
 // Returns true and a header row if the sheet is a follow_up sheet;
 // else returns false and nil.
 func CheckFollowups(e *log.Logger, path string, j int, sheet *xlsx.Sheet) (bool, []string) {
+
 	// Check if the header row is empty
 	v, _ := sheet.Cell(0, 0).String()
 	if v == "" {
 		errlog.Invalid(e, 2, path, j)
-	} else {
-		keys := []string{}
-		for _, row := range sheet.Rows {
-			for _, cell := range row.Cells {
-				value, _ := cell.String()
-				keys = append(keys, value)
-			}
-			break
-		}
-		for _, k := range keys {
-			matched, err := regexp.MatchString("STATUS", k)
-			CheckErr(e, err)
-			if matched && StringInSlice("FU_D", keys) && StringInSlice("DIED", keys) && StringInSlice("DTH_D", keys) {
-				return true, keys
-			}
-		}
 		return false, nil
+	}
+	keys := []string{}
+	for _, row := range sheet.Rows {
+		for _, cell := range row.Cells {
+			value, _ := cell.String()
+			keys = append(keys, value)
+		}
+		break
+	}
+	for _, k := range keys {
+		matched, err := regexp.MatchString("STATUS", k)
+		CheckErr(e, err)
+		if matched && StringInSlice("FU_D", keys) && StringInSlice("DIED", keys) && StringInSlice("DTH_D", keys) {
+			return true, keys
+		}
 	}
 	return false, nil
 }
@@ -145,10 +163,14 @@ func CheckFollowups(e *log.Logger, path string, j int, sheet *xlsx.Sheet) (bool,
 // and each sheet is restructed to a slice containing list of maps.
 func ExcelToSlice(e *log.Logger, excelFilePath string) ([][]map[string]string, [][]string) {
 
+	File, err := xlsx.OpenFile(excelFilePath)
+	CheckErr(e, err)
+
+	CheckHeaderRow(File, excelFilePath)
+
 	xlFile, err := xlsx.OpenFile(excelFilePath)
-	if err != nil {
-		fmt.Println(err)
-	}
+	CheckErr(e, err)
+
 	slices := [][]map[string]string{}
 	keyList := [][]string{}
 	for s, sheet := range xlFile.Sheets {
