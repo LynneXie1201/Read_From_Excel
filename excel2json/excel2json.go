@@ -26,13 +26,13 @@ var (
 
 )
 
-// follow up event
+// FollowUp is follow up event
 type followUp struct {
 	PTID, Type, Date, Status, NoneValveReop, FuNotes, Notes, LostOnDate, OtherNote string
 	Plat, Coag, PoNYHA                                                             int
 }
 
-// last-known-alive-date event
+// LkaDate is last-known-alive-date event
 type lkaDate struct {
 	PTID, Type, Date string
 }
@@ -73,68 +73,103 @@ func init() {
 	codes = []string{"A", "D", "L", "N", "O", "R", ""} // correct codes for STATUS
 }
 
-// CheckPtidColumns checks the number of PTID columns,
-// and returns the column names of PTID, assuming each file would have at most two PTID columns.
-// Parameters including:
-// e - a logger that records the error messages;
-// path - the path of the excel file;
-// j - the index of the sheets in that excel file;
-// keys - a slice that contains the header row
-func CheckPtidColumns(e *log.Logger, path string, j int, keys []string) (string, string) {
-	// create a slice that holds the column names that contains PTID
-	id := []string{}
-	for _, k := range keys {
-		if strings.Contains(k, "PTID") {
-			id = append(id, k)
+// CompareFollowUps checks if two follow up events are duplicate
+func (a followUp) CompareFollowUps(s []followUp) bool {
+	for _, b := range s {
+		if &a == &b {
+			return true
+		} else if a.Coag == b.Coag && a.Date == b.Date && a.FuNotes == b.FuNotes &&
+			a.LostOnDate == b.LostOnDate && a.NoneValveReop == b.NoneValveReop &&
+			a.Notes == b.Notes && a.OtherNote == b.OtherNote && a.PTID == b.PTID &&
+			a.Plat == b.Plat && a.PoNYHA == b.PoNYHA && a.Status == b.Status &&
+			a.Type == b.Type {
+			return true
 		}
 	}
-	// if len is 2, we have 2 columns of PTID
-	if len(id) == 2 {
-		id1, id2 := id[0], id[1]
-		return id1, id2
-		// if len is 1, we have only one column of PTID
-	} else if len(id) == 1 {
-		id1, id2 := id[0], id[0]
-		return id1, id2
-	}
-	// else would be invaid as we assume each file would have at most two PTID columns,
-	// then an error message gets written and the program stops.
-	errlog.Invalid(e, 0, path, j)
-	os.Exit(1) // exit if it has invaid columns of PTID
-	return "", ""
+	return false
 }
 
-// CheckStatusColumns checks the number of STATUS columns,
-// and returns the column names of STATUS, assuming each file would have at most two STATUS columns.
-// Parameters including:
-// e - a logger that records the error messages;
-// path - the path of the excel file;
-// j - the index of the sheets in that excel file;
-// keys - a slice that contains the header row
-func CheckStatusColumns(e *log.Logger, path string, j int, keys []string) (string, string) {
-	// create a slice that holds the column names of STATUS that matches a certain pattern
-	status := []string{}
-	for _, k := range keys {
-		matched, err := regexp.MatchString("^.*STATUS$", k) // check status's pattern
-		helper.CheckErr(e, err)
-		if matched {
-			status = append(status, k)
+// ComparelkaDate checks if two last known alive date events are duplicate
+func (a lkaDate) ComparelkaDate(s []lkaDate) bool {
+	for _, b := range s {
+		if &a == &b {
+			return true
+		} else if a.Date == b.Date && a.PTID == b.PTID && a.Type == b.Type {
+			return true
 		}
 	}
-	// if len is 2, we have 2 columns of STATUS
-	if len(status) == 2 {
-		s1, s2 := status[0], status[1]
-		return s1, s2
-		// if len is 1, we have only one column of STATUS
-	} else if len(status) == 1 {
-		s1, s2 := status[0], status[0]
-		return s1, s2
+	return false
+}
+
+// CompareDeath checks if two death events are duplicate
+func (a death) CompareDeath(e *log.Logger, s []death, path string, j int, i int) bool {
+	for _, b := range s {
+		if &a == &b {
+			return true
+		} else if a.Code == b.Code && a.Date == b.Date && a.PTID == b.PTID &&
+			a.PrmDth == b.PrmDth && a.Reason == b.Reason && a.Type == b.Type {
+			return true
+		} else if a.PTID == b.PTID && a.Date != b.Date {
+			e.Println("Same person with different death dates!",
+				a.PTID, a.Date, b.PTID, b.Date, "Path:", path, "sheet#:", j+1, "row#", i+2)
+		}
 	}
-	// else would be invaid as we assume each file would have at most two STATUS columns,
-	// then an error message gets written and the program stops.
-	errlog.Invalid(e, 1, path, j)
-	os.Exit(1)
-	return "", ""
+	return false
+}
+
+// CompareReOperation checks if two re-operation events are duplicate
+func (a reOperation) CompareReOperation(s []reOperation) bool {
+
+	for _, b := range s {
+		if &a == &b {
+			return true
+		} else if a.Code == b.Code && a.Date == b.Date && a.Notes == b.Notes &&
+			a.PTID == b.PTID && a.Reason == b.Reason && a.Surgery == b.Surgery &&
+			a.Survival == b.Survival && a.Type == b.Type {
+			return true
+		}
+	}
+	return false
+}
+
+// CompareTe checks if two te events are duplicate
+func (a te) CompareTe(s []te) bool {
+	for _, b := range s {
+		if &a == &b {
+			return true
+		} else if a.Anti == b.Anti && a.Code == b.Code && a.Date == b.Date &&
+			a.Outcome == b.Outcome && a.PTID == b.PTID && a.Type == b.Type {
+			return true
+		}
+	}
+	return false
+}
+
+// CompareSbe checks if two sbe events are duplicate
+func (a sbe) CompareSbe(s []sbe) bool {
+	for _, b := range s {
+		if &a == &b {
+			return true
+		} else if a.Code == b.Code && a.Date == b.Date && a.Organism == b.Organism &&
+			a.PTID == b.PTID && a.Type == b.Type {
+			return true
+		}
+	}
+	return false
+}
+
+// CompareEvents checks if two events (including FUMI, FUPACE, SVD, PVL, DVT,
+// ARH, THRM, HEML) are duplicate
+func (a general) CompareEvents(s []general) bool {
+	for _, b := range s {
+		if &a == &b {
+			return true
+		} else if a.Code == b.Code && a.Date == b.Date && a.PTID == b.PTID &&
+			a.Type == b.Type {
+			return true
+		}
+	}
+	return false
 }
 
 // LoopAllFiles recursively loops all files in a folder, and tracks all excel files,
@@ -150,7 +185,6 @@ func LoopAllFiles(e *log.Logger, dirPath string, jsonFile *os.File) {
 		}
 		return nil
 	})
-
 	// Loop through all excel files
 	for _, file := range fileList {
 		ReadExcelData(e, file, jsonFile)
@@ -168,15 +202,15 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 	for j, s := range slices {
 		if s == nil {
 			// s is not a follow_up sheet
-			fmt.Println("oops! this is not a follow_up sheet: ", path, "sheet #:", j)
+			//fmt.Println("oops! this is not a follow_up sheet: ", path, "sheet #:", j+1)
 		} else {
 			// s is a follow_up excel sheet
-			fmt.Println("Bingo! this is a follow_up sheet: ", path, "sheet #:", j)
+			fmt.Println("Bingo! this is a follow_up sheet: ", path, "sheet #:", j+1)
 			// keys is the header row of the excel sheet of index j
 			keys := keyList[j]
 			// check the number of PTID and STATUS' colomns
-			p1, p2 := CheckPtidColumns(e, path, j, keys)
-			st1, st2 := CheckStatusColumns(e, path, j, keys)
+			p1, p2 := helper.CheckPtidColumns(e, path, j, keys)
+			st1, st2 := helper.CheckStatusColumns(e, path, j, keys)
 			// i is the index of rows
 			// m is the map representing the correspnding row with the index i
 			for i, m := range s {
@@ -229,19 +263,24 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					if !helper.IntInSlice(fU.Plat, nums[:3]) {
 						errlog.ErrorLog(e, path, j, fU.PTID, i, fU.Type, "PLAT", m["PLAT"])
 					}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, fU)
-					allFollowUps = append(allFollowUps, fU)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !fU.CompareFollowUps(allFollowUps) {
+						allFollowUps = append(allFollowUps, fU)
+						helper.WriteTOFile(jsonFile, fU)
+					}
 				}
+
 				// Event LAST KNOWN ALIVE DATE
 				if m["LKA_D"] != "" {
 					l := lkaDate{
 						PTID: ID1,
 						Type: "LKA_D",
 						Date: helper.CheckDateFormat(e, path, j, i, "LKA_Date", m["LKA_D"])}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, l)
-					allLKA = append(allLKA, l)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !l.ComparelkaDate(allLKA) {
+						helper.WriteTOFile(jsonFile, l)
+						allLKA = append(allLKA, l)
+					}
 				}
 				// Event Death
 				if m["DTH_D"] != "" {
@@ -262,9 +301,11 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					if !helper.IntInSlice(d.PrmDth, nums[:6]) {
 						errlog.ErrorLog(e, path, j, d.PTID, i, d.Type, "PRM_DTH", m["PRM_DTH"])
 					}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, d)
-					allDths = append(allDths, d)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !d.CompareDeath(e, allDths, path, j, i) {
+						helper.WriteTOFile(jsonFile, d)
+						allDths = append(allDths, d)
+					}
 				}
 
 				// Event FUREOP
@@ -285,12 +326,14 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					if !helper.IntInSlice(re.Code, nums[:3]) {
 						errlog.ErrorLog(e, path, j, re.PTID, i, re.Type, "FUREOP", m["FUREOP"])
 					}
-					if S1 == "R" && (re.Code != 1 || m["FUREOP_D"] == "") {
+					if re.Code != -9 && S1 == "R" && (re.Code != 1 || m["FUREOP_D"] == "") {
 						errlog.Differ(e, 4, path, j, i, re.PTID, "")
 					}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, re)
-					allReOper = append(allReOper, re)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !re.CompareReOperation(allReOper) {
+						helper.WriteTOFile(jsonFile, re)
+						allReOper = append(allReOper, re)
+					}
 				}
 
 				// Event TE
@@ -315,9 +358,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					if !helper.IntInSlice(te1.Anti, nums[:5]) && (te1.Anti != 8) {
 						errlog.ErrorLog(e, path, j, te1.PTID, i, te1.Type, "ANTI_TE1", m["ANTI_TE1"])
 					}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, te1)
-					allTE = append(allTE, te1)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !te1.CompareTe(allTE) {
+						helper.WriteTOFile(jsonFile, te1)
+						allTE = append(allTE, te1)
+					}
+
 				}
 				if m["TE2_D"] != "" {
 					te2 := te{
@@ -340,9 +386,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					if !helper.IntInSlice(te2.Anti, nums[:5]) && (te2.Anti != 8) {
 						errlog.ErrorLog(e, path, j, te2.PTID, i, te2.Type, "ANTI_TE2", m["ANTI_TE2"])
 					}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, te2)
-					allTE = append(allTE, te2)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !te2.CompareTe(allTE) {
+						helper.WriteTOFile(jsonFile, te2)
+						allTE = append(allTE, te2)
+					}
+
 				}
 				if m["TE3_D"] != "" {
 					te3 := te{
@@ -365,9 +414,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					if !helper.IntInSlice(te3.Anti, nums[:5]) && (te3.Anti != 8) {
 						errlog.ErrorLog(e, path, j, te3.PTID, i, te3.Type, "ANTI_TE3", m["ANTI_TE3"])
 					}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, te3)
-					allTE = append(allTE, te3)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !te3.CompareTe(allTE) {
+						helper.WriteTOFile(jsonFile, te3)
+						allTE = append(allTE, te3)
+					}
+
 				}
 
 				// Event FUMI
@@ -379,9 +431,11 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&f1.Code, m["FUMI"])
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, f1)
-					events = append(events, f1)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !f1.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, f1)
+						events = append(events, f1)
+					}
 				}
 
 				// Event FUPACE
@@ -393,9 +447,11 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&f2.Code, m["FUPACE"])
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, f2)
-					events = append(events, f2)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !f2.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, f2)
+						events = append(events, f2)
+					}
 				}
 
 				// Event SBE
@@ -413,9 +469,11 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					if !helper.IntInSlice(sbe1.Code, nums[:3]) {
 						errlog.ErrorLog(e, path, j, sbe1.PTID, i, sbe1.Type, "SBE1", m["SBE1"])
 					}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, sbe1)
-					allSBE = append(allSBE, sbe1)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !sbe1.CompareSbe(allSBE) {
+						helper.WriteTOFile(jsonFile, sbe1)
+						allSBE = append(allSBE, sbe1)
+					}
 				}
 
 				if m["SBE2_D"] != "" {
@@ -432,9 +490,11 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					if !helper.IntInSlice(sbe2.Code, nums[:3]) {
 						errlog.ErrorLog(e, path, j, sbe2.PTID, i, sbe2.Type, "SBE2", m["SBE2"])
 					}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, sbe2)
-					allSBE = append(allSBE, sbe2)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !sbe2.CompareSbe(allSBE) {
+						helper.WriteTOFile(jsonFile, sbe2)
+						allSBE = append(allSBE, sbe2)
+					}
 				}
 
 				if m["SBE3_D"] != "" {
@@ -451,9 +511,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					if !helper.IntInSlice(sbe3.Code, nums[:3]) {
 						errlog.ErrorLog(e, path, j, sbe3.PTID, i, sbe3.Type, "SBE3", m["SBE3"])
 					}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, sbe3)
-					allSBE = append(allSBE, sbe3)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !sbe3.CompareSbe(allSBE) {
+						helper.WriteTOFile(jsonFile, sbe3)
+						allSBE = append(allSBE, sbe3)
+					}
+
 				}
 
 				// Event SVD
@@ -465,9 +528,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&s4.Code, m["SVD"])
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, s4)
-					events = append(events, s4)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !s4.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, s4)
+						events = append(events, s4)
+					}
+
 				}
 				// Event PVL
 				if m["PVL1_D"] != "" {
@@ -478,9 +544,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&pvl1.Code, m["PVL1"])
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, pvl1)
-					events = append(events, pvl1)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !pvl1.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, pvl1)
+						events = append(events, pvl1)
+					}
+
 				}
 
 				if m["PVL2_D"] != "" {
@@ -491,9 +560,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&pvl2.Code, m["PVL2"])
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, pvl2)
-					events = append(events, pvl2)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !pvl2.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, pvl2)
+						events = append(events, pvl2)
+					}
+
 				}
 
 				// Event DVT
@@ -505,9 +577,11 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&d1.Code, m["DVT"])
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, d1)
-					events = append(events, d1)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !d1.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, d1)
+						events = append(events, d1)
+					}
 				}
 				// Event ARH
 				if m["ARH1_D"] != "" {
@@ -523,9 +597,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					if !helper.IntInSlice(arh1.Code, nums[:]) {
 						errlog.ErrorLog(e, path, j, arh1.PTID, i, arh1.Type, "ARH1", m["ARH1"])
 					}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, arh1)
-					events = append(events, arh1)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !arh1.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, arh1)
+						events = append(events, arh1)
+					}
+
 				}
 
 				if m["ARH2_D"] != "" {
@@ -541,11 +618,13 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					if !helper.IntInSlice(arh2.Code, nums[:]) {
 						errlog.ErrorLog(e, path, j, arh2.PTID, i, arh2.Type, "ARH2", m["ARH2"])
 					}
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, arh2)
-					events = append(events, arh2)
-				}
+					// if no duplicates, write this object to the json file and store in a slice
+					if !arh2.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, arh2)
+						events = append(events, arh2)
+					}
 
+				}
 				// Event THRM
 				if m["THRM1_D"] != "" {
 					thrm1 := general{
@@ -555,9 +634,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&thrm1.Code, m["THRM1"])
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, thrm1)
-					events = append(events, thrm1)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !thrm1.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, thrm1)
+						events = append(events, thrm1)
+					}
+
 				}
 
 				if m["THRM2_D"] != "" {
@@ -566,9 +648,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						Type: "THRM",
 						Date: helper.CheckDateFormat(e, path, j, i, "THRM2_Date", m["THRM2_D"])}
 					helper.CheckEmpty(&thrm2.Code, m["THRM2"])
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, thrm2)
-					events = append(events, thrm2)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !thrm2.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, thrm2)
+						events = append(events, thrm2)
+					}
+
 				}
 
 				// Event HEML
@@ -580,9 +665,11 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&heml1.Code, m["HEML1"])
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, heml1)
-					events = append(events, heml1)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !heml1.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, heml1)
+						events = append(events, heml1)
+					}
 				}
 
 				if m["HEML2_D"] != "" {
@@ -593,9 +680,11 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&heml2.Code, m["HEML2"])
-					// write this object to the json file and store in a slice
-					helper.WriteTOFile(jsonFile, heml2)
-					events = append(events, heml2)
+					// if no duplicates, write this object to the json file and store in a slice
+					if !heml2.CompareEvents(events) {
+						helper.WriteTOFile(jsonFile, heml2)
+						events = append(events, heml2)
+					}
 				}
 			}
 		}
