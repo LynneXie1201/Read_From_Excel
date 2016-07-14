@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -39,8 +38,8 @@ type lkaDate struct {
 
 // death event
 type death struct {
-	PTID, Type, Date, Reason string
-	Code, PrmDth             int
+	PTID, Type, Date, Reason, Path string
+	Code, PrmDth                   int
 }
 
 // re-operation event
@@ -109,9 +108,10 @@ func (a death) CompareDeath(e *log.Logger, s []death, path string, j int, i int)
 		} else if a.Code == b.Code && a.Date == b.Date && a.PTID == b.PTID &&
 			a.PrmDth == b.PrmDth && a.Reason == b.Reason && a.Type == b.Type {
 			return true
-		} else if a.PTID == b.PTID && a.Date != b.Date {
+		} else if a.PTID == b.PTID && a.Date != b.Date && a.Code == b.Code &&
+			a.PrmDth == b.PrmDth && a.Reason == b.Reason && a.Type == b.Type {
 			e.Println("Same person with different death dates!",
-				a.PTID, a.Date, b.PTID, b.Date, "Path:", path, "sheet#:", j+1, "row#", i+2)
+				a.PTID, a.Date, "Path:", path, "sheet#:", j+1, "row#", i+2, b.PTID, b.Date, b.Path)
 		}
 	}
 	return false
@@ -202,7 +202,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 	for j, s := range slices {
 		if s == nil {
 			// s is not a follow_up sheet
-			//fmt.Println("oops! this is not a follow_up sheet: ", path, "sheet #:", j+1)
+			fmt.Println("oops! this is not a follow_up sheet: ", path, "sheet #:", j+1)
 		} else {
 			// s is a follow_up excel sheet
 			fmt.Println("Bingo! this is a follow_up sheet: ", path, "sheet #:", j+1)
@@ -220,12 +220,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 				if ID1 != ID2 {
 					helper.AssignPTID(e, path, i, j, &ID1, &ID2)
 				}
-				// if format of PTID is not LLLFDDMMYY
-				matched, err := regexp.MatchString("^.{4}(0?[1-9]|1[012])(0?[1-9]|[12][0-9]|3[01])[0-9]{2}$", ID1)
-				helper.CheckErr(e, err)
-				if !matched {
-					errlog.Differ(e, 2, path, j, i, ID1, "")
-				}
+				// check if format of PTID is LLLFDDMMYY
+				helper.CheckPtidFormat(ID1, e, path, j, i)
 				// Check STATUS
 				S1, S2 := m[st1], m[st2]
 				// two different STATUS values
@@ -251,7 +247,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 					helper.CheckEmpty(&fU.Plat, m["PLAT"])
 
 					// Validate fields' values
-					if !helper.StringInSlice(fU.Status, codes) {
+					if !helper.StringInSlice(1, fU.Status, codes) {
 						errlog.ErrorLog(e, path, j, fU.PTID, i, fU.Type, "Status", fU.Status)
 					}
 					if !helper.IntInSlice(fU.PoNYHA, nums[1:6]) {
@@ -288,7 +284,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 						PTID:   ID1,
 						Type:   "death",
 						Date:   helper.CheckDateFormat(e, path, j, i, "DTH_Date", m["DTH_D"]),
-						Reason: m["REASDTH"]}
+						Reason: m["REASDTH"],
+						Path:   path}
 					// check if these two columns are empty or not,
 					// if empty, assign -9
 					helper.CheckEmpty(&d.PrmDth, m["PRM_DTH"])
@@ -457,13 +454,18 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 				// Event SBE
 				if m["SBE1_D"] != "" {
 					sbe1 := sbe{
-						PTID:     ID1,
-						Type:     "SBE",
-						Date:     helper.CheckDateFormat(e, path, j, i, "SBE1_Date", m["SBE1_D"]),
-						Organism: m["SBE1 ORGANISM"]}
+						PTID: ID1,
+						Type: "SBE",
+						Date: helper.CheckDateFormat(e, path, j, i, "SBE1_Date", m["SBE1_D"])}
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&sbe1.Code, m["SBE1"])
+					// some sheets may have organism instead of ORGANISM
+					if m["SBE1 ORGANISM"] != "" {
+						sbe1.Organism = m["SBE1 ORGANISM"]
+					} else {
+						sbe1.Organism = m["SBE1 organism"]
+					}
 
 					// Validate fields' values
 					if !helper.IntInSlice(sbe1.Code, nums[:3]) {
@@ -478,13 +480,18 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 
 				if m["SBE2_D"] != "" {
 					sbe2 := sbe{
-						PTID:     ID1,
-						Type:     "SBE",
-						Date:     helper.CheckDateFormat(e, path, j, i, "SBE2_Date", m["SBE2_D"]),
-						Organism: m["SBE2 ORGANISM"]}
+						PTID: ID1,
+						Type: "SBE",
+						Date: helper.CheckDateFormat(e, path, j, i, "SBE2_Date", m["SBE2_D"])}
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&sbe2.Code, m["SBE2"])
+					// some sheets may have organism instead of ORGANISM
+					if m["SBE2 ORGANISM"] != "" {
+						sbe2.Organism = m["SBE2 ORGANISM"]
+					} else {
+						sbe2.Organism = m["SBE2 organism"]
+					}
 
 					// Validate fields' values
 					if !helper.IntInSlice(sbe2.Code, nums[:3]) {
@@ -499,13 +506,19 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File) {
 
 				if m["SBE3_D"] != "" {
 					sbe3 := sbe{
-						PTID:     ID1,
-						Type:     "SBE",
-						Date:     helper.CheckDateFormat(e, path, j, i, "SBE3_Date", m["SBE3_D"]),
-						Organism: m["SBE3 ORGANISM"]}
+						PTID: ID1,
+						Type: "SBE",
+						Date: helper.CheckDateFormat(e, path, j, i, "SBE3_Date", m["SBE3_D"])}
 					// check if this column is empty or not;
 					// if empty, assign -9
 					helper.CheckEmpty(&sbe3.Code, m["SBE3"])
+
+					// some sheets may have organism instead of ORGANISM
+					if m["SBE3 ORGANISM"] != "" {
+						sbe3.Organism = m["SBE3 ORGANISM"]
+					} else {
+						sbe3.Organism = m["SBE3 organism"]
+					}
 
 					// Validate fields' values
 					if !helper.IntInSlice(sbe3.Code, nums[:3]) {
