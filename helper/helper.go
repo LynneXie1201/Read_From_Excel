@@ -70,8 +70,9 @@ func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column stri
 	return value
 }
 
-// StringInSlice checks if a slice contains a certain string pattern
+// StringInSlice checks if a string in the slice matches a certain string pattern
 func StringInSlice(indicator int, str string, list []string) bool {
+	// if indicator is 0, str is the standard string pattern
 	if indicator == 0 {
 		for _, v := range list {
 			matched, _ := regexp.MatchString("^"+str+"$", v)
@@ -81,7 +82,7 @@ func StringInSlice(indicator int, str string, list []string) bool {
 		}
 		return false
 	}
-	// indicator is not 0
+	// indicator is not 0, then v is the standard string pattern
 	for _, v := range list {
 		matched, _ := regexp.MatchString("^"+v, str)
 		if matched {
@@ -183,8 +184,9 @@ func CheckFollowups(e *log.Logger, path string, j int, sheet *xlsx.Sheet) (bool,
 		}
 		break
 	}
-
-	if StringInSlice(0, ".*STATUS", keys) && StringInSlice(0, "FU_D", keys) && StringInSlice(0, "DIED", keys) && StringInSlice(0, "DTH_D", keys) {
+	// Check follow up columns
+	if StringInSlice(0, ".*STATUS", keys) && StringInSlice(0, "FU_D", keys) &&
+		StringInSlice(0, "DIED", keys) && StringInSlice(0, "DTH_D", keys) {
 		return true, keys
 	}
 	return false, nil
@@ -336,9 +338,15 @@ func CheckPtidFormat(id string, e *log.Logger, path string, j int, i int) {
 
 }
 
-// CheckColumnNames is
+// CheckColumnNames checks if the columns are expected ones
 func CheckColumnNames(e *log.Logger, keys []string, path string, j int) {
-	columns, err := ReadLines("PATH_TO_FILE")
+	// get standard column names file path from user input
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter path to the columns file: ")
+	file, _ := reader.ReadString('\n')
+	file = strings.TrimSpace(file)
+	// read from the columns file
+	columns, err := ReadLines(file)
 	CheckErr(e, err)
 	for _, k := range keys {
 		if !StringInSlice(1, k, columns) {
