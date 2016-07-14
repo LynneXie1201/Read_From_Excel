@@ -2,6 +2,7 @@
 package helper
 
 import (
+	"bufio"
 	"encoding/json"
 	"excel/errlog"
 	"fmt"
@@ -34,6 +35,10 @@ func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column stri
 	// YYYY/MM/DD
 	matched4, err := regexp.MatchString("^[0-9]{4}/(0?[1-9]|1[012])/(0?[1-9]|[12][0-9]|3[01])$", value)
 	CheckErr(e, err)
+	// M/DD/YY HH:MM
+	matched5, err := regexp.MatchString("^(0?[1-9]|1[012])/(0?[1-9]|[12][0-9]|3[01])/[0-9]{2} ([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$", value)
+	CheckErr(e, err)
+
 	if matched1 {
 		return value
 	} else if matched2 {
@@ -54,20 +59,37 @@ func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column stri
 			errlog.Differ(e, 5, path, sheet, row, column, value)
 		}
 		return t.Format("2006-01-02")
-	} else {
-		errlog.Differ(e, 5, path, sheet, row, column, value)
-		return value
+	} else if matched5 {
+		t, err := time.Parse("1/2/06 15:04", value)
+		if err != nil {
+			errlog.Differ(e, 5, path, sheet, row, column, value)
+		}
+		return t.Format("2006-01-02")
 	}
+	errlog.Differ(e, 5, path, sheet, row, column, value)
+	return value
 }
 
-// StringInSlice checks if a slice contains a certain string value
-func StringInSlice(str string, list []string) bool {
+// StringInSlice checks if a slice contains a certain string pattern
+func StringInSlice(indicator int, str string, list []string) bool {
+	if indicator == 0 {
+		for _, v := range list {
+			matched, _ := regexp.MatchString("^"+str+"$", v)
+			if matched {
+				return true
+			}
+		}
+		return false
+	}
+	// indicator is not 0
 	for _, v := range list {
-		if v == str {
+		matched, _ := regexp.MatchString("^"+v, str)
+		if matched {
 			return true
 		}
 	}
 	return false
+
 }
 
 // IntInSlice checks if a slice contains a certain int value
@@ -116,9 +138,9 @@ func AssignPTID(e *log.Logger, path string, i int, j int, d1 *string, d2 *string
 	return nil
 }
 
-// CheckHeaderRow checks if the header rows cannot be read,
+// CheckEmptyHeaderRow checks if the header rows cannot be read,
 // then use a package to open the file and save it.
-func CheckHeaderRow(e *log.Logger, excelFilePath string) (bool, *xlsx.File) {
+func CheckEmptyHeaderRow(e *log.Logger, excelFilePath string) (bool, *xlsx.File) {
 	// Open an excel file
 	File, err := xlsx.OpenFile(excelFilePath)
 	CheckErr(e, err)
@@ -155,18 +177,15 @@ func CheckFollowups(e *log.Logger, path string, j int, sheet *xlsx.Sheet) (bool,
 	keys := []string{}
 	for _, row := range sheet.Rows {
 		for _, cell := range row.Cells {
-			value := cell.Value
+			value, _ := cell.String()
 			//CheckErr(e, err)
 			keys = append(keys, value)
 		}
 		break
 	}
-	for _, k := range keys {
-		matched, err := regexp.MatchString("STATUS", k)
-		CheckErr(e, err)
-		if matched && StringInSlice("FU_D", keys) && StringInSlice("DIED", keys) && StringInSlice("DTH_D", keys) {
-			return true, keys
-		}
+
+	if StringInSlice(0, ".*STATUS", keys) && StringInSlice(0, "FU_D", keys) && StringInSlice(0, "DIED", keys) && StringInSlice(0, "DTH_D", keys) {
+		return true, keys
 	}
 	return false, nil
 }
@@ -177,7 +196,7 @@ func CheckFollowups(e *log.Logger, path string, j int, sheet *xlsx.Sheet) (bool,
 // and each sheet is restructed to a slice containing list of maps.
 func ExcelToSlice(e *log.Logger, excelFilePath string) ([][]map[string]string, [][]string) {
 
-	isEmpty, xlFile := CheckHeaderRow(e, excelFilePath)
+	isEmpty, xlFile := CheckEmptyHeaderRow(e, excelFilePath)
 	// if the excel file has a empty header row
 	if isEmpty {
 		xlFile, _ = xlsx.OpenFile(excelFilePath)
@@ -185,9 +204,11 @@ func ExcelToSlice(e *log.Logger, excelFilePath string) ([][]map[string]string, [
 
 	slices := [][]map[string]string{}
 	keyList := [][]string{}
+	// s is the index of Sheets
 	for s, sheet := range xlFile.Sheets {
 		isFu, keys := CheckFollowups(e, excelFilePath, s, sheet) // check for each sheet inside the excel file
 		if isFu != false {
+			CheckColumnNames(e, keys, excelFilePath, s)
 			keyList = append(keyList, keys)
 			slice := []map[string]string{} // a sheet is a slice
 			for _, row := range sheet.Rows {
@@ -301,4 +322,44 @@ func CheckStatusColumns(e *log.Logger, path string, j int, keys []string) (strin
 	errlog.Invalid(e, 1, path, j)
 	os.Exit(1)
 	return "", ""
+}
+
+// CheckPtidFormat checks if the format of PTID is LLLFDDMMYY;
+// if not, write to error log.
+func CheckPtidFormat(id string, e *log.Logger, path string, j int, i int) {
+
+	matched, err := regexp.MatchString("^.{4}(0?[1-9]|1[012])(0?[1-9]|[12][0-9]|3[01])[0-9]{2}$", id)
+	CheckErr(e, err)
+	if !matched {
+		errlog.Differ(e, 2, path, j, i, id, "")
+	}
+
+}
+
+// CheckColumnNames is
+func CheckColumnNames(e *log.Logger, keys []string, path string, j int) {
+	columns, err := ReadLines("PATH_TO_FILE")
+	CheckErr(e, err)
+	for _, k := range keys {
+		if !StringInSlice(1, k, columns) {
+			e.Println(path, "Sheet #:", j+1, "INFO: Unexpected Column:", k)
+		}
+	}
+}
+
+// ReadLines reads a whole file into memory
+// and returns a slice of its lines.
+func ReadLines(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
 }
