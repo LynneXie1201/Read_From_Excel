@@ -388,7 +388,7 @@ func ReadLines(path string) ([]string, error) {
 func GetUserInput() string {
 	// get standard column names file path from user input
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter path to the columns file: ") // C:/Users/Lynne Xie/Documents/go/src/excel/helper/column.txt
+	fmt.Print("Enter path to the columns file: ") // 
 	file, _ := reader.ReadString('\n')
 	file = strings.TrimSpace(file)
 	return file
