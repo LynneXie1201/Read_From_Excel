@@ -38,6 +38,12 @@ func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column stri
 	// M/DD/YY HH:MM
 	matched5, err := regexp.MatchString("^(0?[1-9]|1[012])/(0?[1-9]|[12][0-9]|3[01])/[0-9]{2} ([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$", value)
 	CheckErr(e, err)
+	// YYYY-M
+	matched6, err := regexp.MatchString("^[0-9]{4}-(0?[1-9]|1[012])$", value)
+	CheckErr(e, err)
+	// YYYY
+	matched7, err := regexp.MatchString("^[0-9]{4}$", value)
+	CheckErr(e, err)
 
 	if matched1 {
 		return value
@@ -65,6 +71,17 @@ func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column stri
 			errlog.Differ(e, 5, path, sheet, row, column, value)
 		}
 		return t.Format("2006-01-02")
+	} else if matched6 {
+		t, err := time.Parse("2006-1", value)
+		if err != nil {
+			errlog.Differ(e, 5, path, sheet, row, column, value)
+		}
+		newTime := t.Format("2006-01")
+		newTime += "-15"
+		return newTime
+	} else if matched7 {
+		newTime := value + "-06-15"
+		return newTime
 	}
 	errlog.Differ(e, 5, path, sheet, row, column, value)
 	return value
@@ -147,7 +164,6 @@ func CheckEmptyHeaderRow(e *log.Logger, excelFilePath string) (bool, *xlsx.File)
 	CheckErr(e, err)
 	// assign the A1 cell to v
 	v, _ := File.Sheets[0].Cell(0, 0).String()
-	//CheckErr(e, err)
 	// Check if the header row is empty,
 	// if the header rows cannot be read, use a package to open the file and then save it.
 	if v == "" {
@@ -170,7 +186,6 @@ func CheckFollowups(e *log.Logger, path string, j int, sheet *xlsx.Sheet) (bool,
 
 	// Check if the header row is empty
 	v, _ := sheet.Cell(0, 0).String()
-	//CheckErr(e, err)
 	if v == "" {
 		errlog.Invalid(e, 2, path, j)
 		return false, nil
@@ -196,7 +211,7 @@ func CheckFollowups(e *log.Logger, path string, j int, sheet *xlsx.Sheet) (bool,
 // (Assume a excel file may contain multiple sheets)
 // Each row of a sheet is restructed to a map, then appended to a slice,
 // and each sheet is restructed to a slice containing list of maps.
-func ExcelToSlice(e *log.Logger, excelFilePath string) ([][]map[string]string, [][]string) {
+func ExcelToSlice(e *log.Logger, excelFilePath string, columnsChecker string) ([][]map[string]string, [][]string) {
 
 	isEmpty, xlFile := CheckEmptyHeaderRow(e, excelFilePath)
 	// if the excel file has a empty header row
@@ -210,7 +225,8 @@ func ExcelToSlice(e *log.Logger, excelFilePath string) ([][]map[string]string, [
 	for s, sheet := range xlFile.Sheets {
 		isFu, keys := CheckFollowups(e, excelFilePath, s, sheet) // check for each sheet inside the excel file
 		if isFu != false {
-			CheckColumnNames(e, keys, excelFilePath, s)
+			// Check columnn names
+			CheckColumnNames(columnsChecker, e, keys, excelFilePath, s)
 			keyList = append(keyList, keys)
 			slice := []map[string]string{} // a sheet is a slice
 			for _, row := range sheet.Rows {
@@ -328,23 +344,19 @@ func CheckStatusColumns(e *log.Logger, path string, j int, keys []string) (strin
 
 // CheckPtidFormat checks if the format of PTID is LLLFDDMMYY;
 // if not, write to error log.
-func CheckPtidFormat(id string, e *log.Logger, path string, j int, i int) {
-
+func CheckPtidFormat(id string, e *log.Logger, path string, j int, i int) bool {
+	// valid PTID format: LLLFMMDDYY
 	matched, err := regexp.MatchString("^.{4}(0?[1-9]|1[012])(0?[1-9]|[12][0-9]|3[01])[0-9]{2}$", id)
 	CheckErr(e, err)
 	if !matched {
 		errlog.Differ(e, 2, path, j, i, id, "")
+		return false
 	}
-
+	return true
 }
 
 // CheckColumnNames checks if the columns are expected ones
-func CheckColumnNames(e *log.Logger, keys []string, path string, j int) {
-	// get standard column names file path from user input
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter path to the columns file: ")
-	file, _ := reader.ReadString('\n')
-	file = strings.TrimSpace(file)
+func CheckColumnNames(file string, e *log.Logger, keys []string, path string, j int) {
 	// read from the columns file
 	columns, err := ReadLines(file)
 	CheckErr(e, err)
@@ -370,4 +382,14 @@ func ReadLines(path string) ([]string, error) {
 		lines = append(lines, scanner.Text())
 	}
 	return lines, scanner.Err()
+}
+
+//GetUserInput reads user input from terminal
+func GetUserInput() string {
+	// get standard column names file path from user input
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter path to the columns file: ") // C:/Users/Lynne Xie/Documents/go/src/excel/helper/column.txt
+	file, _ := reader.ReadString('\n')
+	file = strings.TrimSpace(file)
+	return file
 }
