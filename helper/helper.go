@@ -4,7 +4,6 @@ package helper
 import (
 	"bufio"
 	"encoding/json"
-	"excel/errlog"
 	"fmt"
 	"log"
 	"os"
@@ -18,7 +17,7 @@ import (
 )
 
 // CheckDateFormat checks the date format and returns a date string with format YYYY-MM-DD
-func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column string, s string) string {
+func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column string, s string) (string, int) {
 	// get rid of "\\",";"and "@"in the date strings
 	value := strings.Replace(s, "\\", "", -1)
 	value = strings.Replace(value, ";", "", -1)
@@ -46,45 +45,37 @@ func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column stri
 	CheckErr(e, err)
 
 	if matched1 {
-		return value
+		return value, 0
 	} else if matched2 {
 		t, err := time.Parse("02-Jan-06", value)
-		if err != nil {
-			errlog.Differ(e, 5, path, sheet, row, column, value)
-		}
-		return t.Format("2006-01-02")
+		CheckErr(e, err)
+		return t.Format("2006-01-02"), 0
 	} else if matched3 {
 		t, err := time.Parse("01-02-06", value)
-		if err != nil {
-			errlog.Differ(e, 5, path, sheet, row, column, value)
-		}
-		return t.Format("2006-01-02")
+		CheckErr(e, err)
+		return t.Format("2006-01-02"), 0
 	} else if matched4 {
 		t, err := time.Parse("2006/01/02", value)
-		if err != nil {
-			errlog.Differ(e, 5, path, sheet, row, column, value)
-		}
-		return t.Format("2006-01-02")
+		CheckErr(e, err)
+		return t.Format("2006-01-02"), 0
 	} else if matched5 {
 		t, err := time.Parse("1/2/06 15:04", value)
-		if err != nil {
-			errlog.Differ(e, 5, path, sheet, row, column, value)
-		}
-		return t.Format("2006-01-02")
+		CheckErr(e, err)
+		return t.Format("2006-01-02"), 0
 	} else if matched6 {
 		t, err := time.Parse("2006-1", value)
-		if err != nil {
-			errlog.Differ(e, 5, path, sheet, row, column, value)
-		}
+		CheckErr(e, err)
 		newTime := t.Format("2006-01")
 		newTime += "-15"
-		return newTime
+		return newTime, 1
 	} else if matched7 {
-		newTime := value + "-06-15"
-		return newTime
+		newTime := value + "-07-01"
+		return newTime, 1
 	}
-	errlog.Differ(e, 5, path, sheet, row, column, value)
-	return value
+	e.Println(path, "Sheet#:", sheet+1, "Row#:", row+2, "Column:", column, "INFO: Invalid Format of Date:", value)
+	//errlog.Differ(e, 5, path, sheet, row, column, value)
+	// return value
+	return value, 2
 }
 
 // StringInSlice checks if a string in the slice matches a certain string pattern
@@ -107,11 +98,20 @@ func StringInSlice(indicator int, str string, list []string) bool {
 		}
 	}
 	return false
-
 }
 
 // IntInSlice checks if a slice contains a certain int value
 func IntInSlice(i int, list []int) bool {
+	for _, v := range list {
+		if v == i {
+			return true
+		}
+	}
+	return false
+}
+
+// FloatInSlice checks if a slice contains a certain float value
+func FloatInSlice(i float64, list []float64) bool {
 	for _, v := range list {
 		if v == i {
 			return true
@@ -131,29 +131,33 @@ func CheckErr(e *log.Logger, err error) {
 // AssignStatus assigns a non empty Status value to the empty one
 // if a file has two columns of Status and one of them is empty;
 // reports an error message if two columns have different values and none of them is empty.
-func AssignStatus(e *log.Logger, path string, i int, j int, s1 *string, s2 *string) error {
-	if *s1 != "" && *s2 != "" {
-		errlog.Differ(e, 0, path, j, i, *s1, *s2)
-		return fmt.Errorf("The two values are different: %s , %s", *s1, *s2)
+func AssignStatus(s1 *string, s2 *string) bool {
+	if *s1 == *s2 {
+		return false
+	} else if *s1 != "" && *s2 != "" {
+		return true
 	} else if *s1 == "" {
 		*s1 = *s2
-		return nil
+		return false
 	}
-	return nil
+	return false
 }
 
 // AssignPTID assigns a non empty PTID value to  the empty one
 // if a file has two columns of PTID and one of them is empty;
 // reports an error message if two columns have different values and none of them is empty.
-func AssignPTID(e *log.Logger, path string, i int, j int, d1 *string, d2 *string) error {
-	if *d1 != "" && *d2 != "" {
-		errlog.Differ(e, 1, path, j, i, *d1, *d2)
-		return fmt.Errorf("The two values are different: %s , %s", *d1, *d2)
+func AssignPTID(d1 *string, d2 *string) bool {
+	if *d1 == *d2 {
+		return false
+	} else if *d1 != "" && *d2 != "" {
+		return true
+		//errlog.Differ(e, 1, path, j, i, *d1, *d2)
+		//return fmt.Errorf("The two values are different: %s , %s", *d1, *d2)
 	} else if *d1 == "" {
 		*d1 = *d2
-		return nil
+		return false
 	}
-	return nil
+	return false
 }
 
 // CheckEmptyHeaderRow checks if the header rows cannot be read,
@@ -161,7 +165,7 @@ func AssignPTID(e *log.Logger, path string, i int, j int, d1 *string, d2 *string
 func CheckEmptyHeaderRow(e *log.Logger, excelFilePath string) (bool, *xlsx.File) {
 	// Open an excel file
 	File, err := xlsx.OpenFile(excelFilePath)
-	CheckErr(e, err)
+	CheckErr(e, err) // if error exists, write to errlog and terminates
 	// assign the A1 cell to v
 	v, _ := File.Sheets[0].Cell(0, 0).String()
 	// Check if the header row is empty,
@@ -169,7 +173,7 @@ func CheckEmptyHeaderRow(e *log.Logger, excelFilePath string) (bool, *xlsx.File)
 	if v == "" {
 		option := excel.Option{"Visible": false, "DisplayAlerts": true}
 		xl, err := excel.Open(excelFilePath, option)
-		CheckErr(e, err)
+		CheckErr(e, err) // if error exists, write to errlog and terminates
 		defer xl.Quit()
 		xl.Save()
 		xl.Quit()
@@ -187,14 +191,14 @@ func CheckFollowups(e *log.Logger, path string, j int, sheet *xlsx.Sheet) (bool,
 	// Check if the header row is empty
 	v, _ := sheet.Cell(0, 0).String()
 	if v == "" {
-		errlog.Invalid(e, 2, path, j)
+		// if the header row is empty, then write to errlog
+		e.Println(path, "Sheet #:", j+1, "THIS SHEET DOES NOT HAVE HEADER ROW!")
 		return false, nil
 	}
 	keys := []string{}
 	for _, row := range sheet.Rows {
 		for _, cell := range row.Cells {
 			value, _ := cell.String()
-			//CheckErr(e, err)
 			keys = append(keys, value)
 		}
 		break
@@ -218,7 +222,6 @@ func ExcelToSlice(e *log.Logger, excelFilePath string, columnsChecker string) ([
 	if isEmpty {
 		xlFile, _ = xlsx.OpenFile(excelFilePath)
 	}
-
 	slices := [][]map[string]string{}
 	keyList := [][]string{}
 	// s is the index of Sheets
@@ -233,7 +236,6 @@ func ExcelToSlice(e *log.Logger, excelFilePath string, columnsChecker string) ([
 				m := map[string]string{} // a row is a map
 				for j, cell := range row.Cells {
 					value, _ := cell.String()
-					//CheckErr(e, err)
 					if value == "9" {
 						value = "-9"
 					}
@@ -278,6 +280,17 @@ func CheckEmpty(value1 *int, value2 string) {
 	}
 }
 
+// CheckFloatEmpty checks if value2 is empty or not.
+// If value2 is not empty, parse string to int, ahd assign to value1;
+// else assign -9 to value1.
+func CheckFloatEmpty(value1 *float64, value2 string) {
+	if value2 != "" {
+		*value1, _ = strconv.ParseFloat(value2, 64)
+	} else {
+		*value1 = -9
+	}
+}
+
 // CheckPtidColumns checks the number of PTID columns,
 // and returns the column names of PTID, assuming each file would have at most two PTID columns.
 // Parameters including:
@@ -304,7 +317,7 @@ func CheckPtidColumns(e *log.Logger, path string, j int, keys []string) (string,
 	}
 	// else would be invaid as we assume each file would have at most two PTID columns,
 	// then an error message gets written and the program stops.
-	errlog.Invalid(e, 0, path, j)
+	e.Println(path, "Sheet #:", j+1, "INFO: This file has invalid numbers of PTID columns!")
 	os.Exit(1) // exit if it has invaid columns of PTID
 	return "", ""
 }
@@ -337,7 +350,7 @@ func CheckStatusColumns(e *log.Logger, path string, j int, keys []string) (strin
 	}
 	// else would be invaid as we assume each file would have at most two STATUS columns,
 	// then an error message gets written and the program stops.
-	errlog.Invalid(e, 1, path, j)
+	e.Println(path, "Sheet #:", j+1, "INFO: This file has invalid numbers of Status columns!")
 	os.Exit(1)
 	return "", ""
 }
@@ -349,7 +362,7 @@ func CheckPtidFormat(id string, e *log.Logger, path string, j int, i int) bool {
 	matched, err := regexp.MatchString("^.{4}(0?[1-9]|1[012])(0?[1-9]|[12][0-9]|3[01])[0-9]{2}$", id)
 	CheckErr(e, err)
 	if !matched {
-		errlog.Differ(e, 2, path, j, i, id, "")
+		e.Println(path, "Sheet #:", j+1, "Row #:", i+2, "INFO: Invaid PTID Value:", id)
 		return false
 	}
 	return true
@@ -388,7 +401,7 @@ func ReadLines(path string) ([]string, error) {
 func GetUserInput() string {
 	// get standard column names file path from user input
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter path to the columns file: ") // 
+	fmt.Print("Enter path to the columns file: ") 
 	file, _ := reader.ReadString('\n')
 	file = strings.TrimSpace(file)
 	return file
