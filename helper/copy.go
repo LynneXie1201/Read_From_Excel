@@ -278,9 +278,10 @@ func WriteTOFile(jsonFile *os.File, o interface{}) {
 
 }
 
-// CheckIntValue checks if value2 is empty or not.
-// If value2 is not empty, parse string to int, ahd assign to value1;
-// else assign -9 to value1.
+// CheckIntValue checks int value:
+// If value2 is empty, assign -9 to value1 and return true;
+// if value2 is character, assign -9 to value1 and return false;
+// else parse string value2 to int value1
 func CheckIntValue(value1 *int, value2 string) bool {
 
 	matched, _ := regexp.MatchString("^[A-Za-z]$", value2)
@@ -296,7 +297,7 @@ func CheckIntValue(value1 *int, value2 string) bool {
 	return true
 }
 
-// CheckFloatValue checks if value2 is empty or not.
+// CheckFloatValue checks float value:
 // If value2 is not empty, parse string to int, ahd assign to value1;
 // else assign -9 to value1.
 func CheckFloatValue(value1 *float64, value2 string) bool {
