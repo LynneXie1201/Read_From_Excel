@@ -17,7 +17,12 @@ import (
 )
 
 // CheckDateFormat checks the date format and returns a date string with format YYYY-MM-DD
+// est == 2 means date is empty or doesn't match any format
 func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column string, s string) (string, int) {
+	//if date is empty, just return
+	if s == "" {
+		return s, 2
+	}
 	// get rid of "\\",";"and "@"in the date strings
 	value := strings.Replace(s, "\\", "", -1)
 	value = strings.Replace(value, ";", "", -1)
@@ -75,7 +80,7 @@ func CheckDateFormat(e *log.Logger, path string, sheet int, row int, column stri
 	e.Println(path, "Sheet#:", sheet+1, "Row#:", row+2, "Column:", column, "INFO: Invalid Format of Date:", value)
 	//errlog.Differ(e, 5, path, sheet, row, column, value)
 	// return value
-	return value, 2
+	return value, 3
 }
 
 // StringInSlice checks if a string in the slice matches a certain string pattern
@@ -273,26 +278,54 @@ func WriteTOFile(jsonFile *os.File, o interface{}) {
 
 }
 
-// CheckEmpty checks if value2 is empty or not.
+// CheckIntValue checks if value2 is empty or not.
 // If value2 is not empty, parse string to int, ahd assign to value1;
 // else assign -9 to value1.
-func CheckEmpty(value1 *int, value2 string) {
-	if value2 != "" {
-		*value1, _ = strconv.Atoi(value2)
-	} else {
+func CheckIntValue(value1 *int, value2 string) bool {
+
+	matched, _ := regexp.MatchString("^[A-Za-z]$", value2)
+
+	if value2 == "" {
 		*value1 = -9
+		return true
+	} else if matched {
+		*value1 = -9
+		return false
 	}
+	*value1, _ = strconv.ParseInt(value2)
+	return true
 }
 
-// CheckFloatEmpty checks if value2 is empty or not.
+// CheckFloatValue checks if value2 is empty or not.
 // If value2 is not empty, parse string to int, ahd assign to value1;
 // else assign -9 to value1.
-func CheckFloatEmpty(value1 *float64, value2 string) {
-	if value2 != "" {
-		*value1, _ = strconv.ParseFloat(value2, 64)
-	} else {
+func CheckFloatValue(value1 *float64, value2 string) bool {
+
+	matched, _ := regexp.MatchString("^[A-Za-z]$", value2)
+	if value2 == "" {
 		*value1 = -9
+		return true
+
+	} else if matched {
+		*value1 = -9
+		return false
 	}
+	*value1, _ = strconv.ParseFloat(value2, 64)
+	return true
+}
+
+// CheckStringValue is
+func CheckStringValue(value1 *string, value2 string) bool {
+
+	matched, _ := regexp.MatchString("^[A-Za-z]$", value2)
+	if value2 == "" {
+		value1 = nil
+		return true
+	} else if !matched {
+		return false
+	}
+	*value1 = value2
+	return true
 }
 
 // CheckPtidColumns checks the number of PTID columns,
@@ -407,7 +440,7 @@ func ReadLines(path string) ([]string, error) {
 func GetUserInput() string {
 	// get standard column names file path from user input
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter path to the columns file: ") 
+	fmt.Print("Enter path to the columns file: ") // C:/Users/Lynne Xie/Documents/go/src/excel/helper/column.txt
 	file, _ := reader.ReadString('\n')
 	file = strings.TrimSpace(file)
 	return file
@@ -426,4 +459,26 @@ func CompareDates(e *log.Logger, date1 string, date2 string) int {
 		return 1
 	}
 	return 2
+}
+
+// SubPath returns a sub path form sep
+func SubPath(path string, sep string) string {
+	i := strings.Index(path, sep)
+	sub := path[i+len(sep) : len(path)]
+	return sub
+}
+
+// OperationString is
+func OperationString(reason string, survival string, notes string, surgery string, nonvalve string) string {
+	var s string
+	if nonvalve == "" {
+		s = "Reason: " + reason + ", Surgeries: " + surgery + ", Notes: " + notes + ", Survival = " + survival
+		return s
+	} else if reason == "" && survival == "" && notes == "" && surgery == "" {
+		s = "Nonvalve re-op: " + nonvalve
+		return s
+	}
+	s = "Reason: " + reason + ", Surgeries: " + surgery + ", Notes: " + notes + ", Survival = " + survival + ", Nonvalve re-op: " + nonvalve
+	return s
+
 }
