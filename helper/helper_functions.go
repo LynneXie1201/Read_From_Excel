@@ -209,6 +209,7 @@ func CheckHeaderRow(e *log.Logger, excelFilePath string) (bool, *xlsx.File) {
 
 }
 
+
 // CheckFollowups checks if the excel sheet is an empty sheet,
 // a follow_up sheet or a sheet that should be ignored.
 // Return true and a header row if the sheet is a follow_up sheet;
