@@ -1,33 +1,42 @@
 package excel2json
 
+// contains all the variables and types that the package needs.
 var (
-	allFollowUps     []followUp // store followUp events
-	allDths          []death    // store death events
-	allTIA           []tia      // store TIA events
-	allStroke        []stroke   // store stroke events
-	allSBE           []sbe      // store SBE events
-	allARH           []arh
-	allLostFollowups []lostFollowup
-	allOperation     []operation
-	allFUMI          []general
-	allFUPACE        []general
-	allSVD           []general
-	allPVL           []general
-	allDVT           []general
-	allTHRM          []general
-	alllHEML         []general
-	allLKA           []lka
-	allFix           []general
-	codes            []string // status codes
-	nums             []int    // numerical values for various codes
-	floats           []float64
+	allFollowUps     []followups // store followup events
+	allDths          []death     // store death events
+	allTIA           []te        // store tia events
+	allStroke        []te        // store stroke events
+	allSBE           []general   // store sbe events
+	allARH           []general   // store arh events
+	allLostFollowups []general   // store lost_to_followup events
+	allOperation     []operation // store operation events
+	allFUMI          []general   // store myocardial_infarction events
+	allFUPACE        []general   // store perm_pacemaker events
+	allSVD           []general   // store struct_valve_det events
+	allPVL           []general   // store perivalvular_leak events
+	allDVT           []general   // store deep_vein_thrombosis events
+	allTHRM          []general   // store thromb_prost_valve events
+	alllHEML         []general   // store hemolysis_dx events
+	allLKA           []followups // store last_known_alive events
+	allFix           []general   // store fix events
+	codes            []string    // status codes
+	nums             []int       // int values for various codes
+	floats           []float64   // float points values for various codes
 )
 
+// type source
 type source struct {
 	Type string   `json:"type"`
 	Path []string `json:"path"`
 }
 
+// error message
+type errMessage struct {
+	Field string `json:"field"`
+	Msg   string `json:"msg"`
+}
+
+// operation
 type operation struct {
 	Type       string       `json:"type"`
 	MRN        string       `json:"mrn"`
@@ -45,20 +54,15 @@ type operation struct {
 	Fix        []errMessage `json:"fix"`
 }
 
-type errMessage struct {
-	Field string `json:"field"`
-	Msg   string `json:"msg"`
-}
-
-// FollowUp is follow up event
-type followUp struct {
+// including followup and last_known_alive events
+type followups struct {
 	Type       string       `json:"type"`
 	MRN        string       `json:"mrn"`
 	ResearchID string       `json:"research_id"`
 	PTID       string       `json:"patient_id"`
 	Date       string       `json:"date"`
 	DateEst    int          `json:"date_est"`
-	Status     *string      `json:"status"`
+	Status     *string      `json:"status,omitempty"` // last_known_alive events don't have status field
 	Notes      string       `json:"notes"`
 	Unusual    string       `json:"unusual"`
 	Plat       int          `json:"anti_platelet"`
@@ -68,36 +72,7 @@ type followUp struct {
 	Fix        []errMessage `json:"fix"`
 }
 
-// FollowUp is follow up event
-type lostFollowup struct {
-	Type       string
-	MRN        string       `json:"mrn"`
-	ResearchID string       `json:"research_id"`
-	PTID       string       `json:"patient_id"`
-	Date       string       `json:"date"`
-	DateEst    int          `json:"date_est"`
-	Notes      string       `json:"notes"`
-	Source     source       `json:"source"`
-	Fix        []errMessage `json:"fix"`
-}
-
-type lka struct {
-	Type       string       `json:"type"`
-	MRN        string       `json:"mrn"`
-	ResearchID string       `json:"research_id"`
-	PTID       string       `json:"patient_id"`
-	Date       string       `json:"date"`
-	DateEst    int          `json:"date_est"`
-	Notes      string       `json:"notes"`
-	Unusual    string       `json:"unusual"`
-	Plat       int          `json:"anti_platelet"`
-	Coag       int          `json:"anti_coagulants"`
-	PoNYHA     float64      `json:"post_op_nyha"`
-	Source     source       `json:"source"`
-	Fix        []errMessage `json:"fix"`
-}
-
-// death event
+// death
 type death struct {
 	Type       string       `json:"type"`
 	MRN        string       `json:"mrn"`
@@ -112,8 +87,8 @@ type death struct {
 	Fix        []errMessage `json:"fix"`
 }
 
-// stroke event
-type stroke struct {
+// including stroke and tia
+type te struct {
 	Type       string       `json:"type"`
 	MRN        string       `json:"mrn"`
 	ResearchID string       `json:"research_id"`
@@ -122,39 +97,14 @@ type stroke struct {
 	DateEst    int          `json:"date_est"`
 	Outcome    int          `json:"outcome"`
 	Agents     int          `json:"anti_agents"`
-	When       int          `json:"when"`
+	When       int          `json:"when,omitempty"` // only stroke events
 	Source     source       `json:"source"`
 	Fix        []errMessage `json:"fix"`
 }
 
-// TIA event
-type tia struct {
-	Type       string       `json:"type"`
-	MRN        string       `json:"mrn"`
-	ResearchID string       `json:"research_id"`
-	PTID       string       `json:"patient_id"`
-	Date       string       `json:"date"`
-	DateEst    int          `json:"date_est"`
-	Outcome    int          `json:"outcome"`
-	Agents     int          `json:"anti_agents"`
-	Source     source       `json:"source"`
-	Fix        []errMessage `json:"fix"`
-}
-
-// SBE event
-type sbe struct {
-	Type       string       `json:"type"`
-	MRN        string       `json:"mrn"`
-	ResearchID string       `json:"research_id"`
-	PTID       string       `json:"patient_id"`
-	Date       string       `json:"date"`
-	DateEst    int          `json:"date_est"`
-	Organism   *string      `json:"organism"`
-	Source     source       `json:"source"`
-	Fix        []errMessage `json:"fix"`
-}
-
-// type of events that share the same variables
+// type of events that share the same variables,
+// including arh, lost_to_followup, myocardial_infarction, perm_pacemaker, struct_valve_det,
+// perivalvular_leak, deep_vein_thrombosis, thromb_prost_valve, hemolysis_dx events
 type general struct {
 	Type       string       `json:"type"`
 	MRN        string       `json:"mrn"`
@@ -162,20 +112,10 @@ type general struct {
 	PTID       string       `json:"patient_id"`
 	Date       string       `json:"date"`
 	DateEst    int          `json:"date_est"`
-	Msg        string       `json:"msg,omitempty"` // some events don't have notes field
+	Organism   *string      `json:"organism,omitempty"` // only sbe events have
+	Code       int          `json:"code,omitempty"`     // only arh events have
+	Msg        string       `json:"msg,omitempty"`      // some events don't have msg field
+	Notes      string       `json:"notes,omitempty"`    // some events don't have notes field
 	Source     source       `json:"source"`
-	Fix        []errMessage `json:"fix,omitempty"` // Fix events don't need fix field
-}
-
-// type of events that share the same variables
-type arh struct {
-	Type       string       `json:"type"`
-	MRN        string       `json:"mrn"`
-	ResearchID string       `json:"research_id"`
-	PTID       string       `json:"patient_id"`
-	Date       string       `json:"date"`
-	DateEst    int          `json:"date_est"`
-	Code       int          `json:"code"`
-	Source     source       `json:"source"`
-	Fix        []errMessage `json:"fix"`
+	Fix        []errMessage `json:"fix,omitempty"` // fix events don't need fix field
 }
