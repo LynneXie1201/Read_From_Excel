@@ -12,7 +12,7 @@ import (
 )
 
 // LoopAllFiles recursively loops all files in a folder, and tracks all excel files,
-// opens a error log and a json file to store error messages and json objects, and
+// opens a errorlog and a json file to store error messages and json objects, and
 // for each excel file, calls another function to read data from the file.
 func LoopAllFiles(e *log.Logger, dirPath string, jsonFile *os.File) {
 	fileList := []string{}
@@ -24,12 +24,14 @@ func LoopAllFiles(e *log.Logger, dirPath string, jsonFile *os.File) {
 		}
 		return nil
 	})
+	// get the valid column names
 	columnsChecker := helper.ReadUserInput()
 	// Loop through all excel files
 	for _, file := range fileList {
 		ReadExcelData(e, file, jsonFile, columnsChecker)
 	}
 
+	// write to JSON file
 	WriteToJSON(jsonFile, allARH, allDVT, allDths, allFUMI, allFUPACE, allFix, allFollowUps,
 		allLKA, allOperation, allPVL, allSBE, allSVD,
 		allStroke, allTHRM, allTIA, alllHEML, allLostFollowups)
