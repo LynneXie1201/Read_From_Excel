@@ -10,35 +10,36 @@ import (
 	"regexp"
 )
 
-// Initialize before other functions get called
+// Initialize before other functions get executed
 func init() {
-	nums = []int{0, -9, 1, 2, 3, 4, 5}                 // list of numbers for validate codes
-	codes = []string{"N", "D", "L", "O", "A", "R", ""} // correct codes for STATUS
-	floats = []float64{0, -9, 1, 2, 3, 4, 5, 1.5, 2.5, 3.5, 4.5}
+	nums = []int{0, -9, 1, 2, 3, 4, 5}                           // list of int numbers for validation
+	codes = []string{"N", "D", "L", "O", "A", "R", ""}           // valid status codes
+	floats = []float64{0, -9, 1, 2, 3, 4, 5, 1.5, 2.5, 3.5, 4.5} // list of float numbers for validation
 }
 
-// ReadExcelData uses the returned values of the function ExcelToSlice to
-// build different types of events, and stores events to a json file.
+// ReadExcelData uses the returned values from the function ExcelToSlice to
+// create different types of events, and stores in the slices.
 func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker string) {
-	// slices is a slice of slices of maps, each map is a row in a excel file
-	// keyList is a slice of slices of strings, each slice of strings is a header row of a excel file
+	// slices is a slice of slices of maps, each slice of maps represents a sheet, and each map is a row in a sheet
+	// keyList is a slice of slices of strings, each slice of strings is a header row of a sheet
 	slices, keyList := ExcelToSlice(e, path, columnsChecker)
 	// get the sub path of the original path
 	path = helper.SubPath(path, "valve_registry")
 	// j is the index of sheets
 	// s is a slice of maps representing the excel sheet of index j
 	for j, s := range slices {
+		// if s equals nil, s is not a follow_up sheet
 		if s == nil {
-			// s is not a follow_up sheet
 			fmt.Println("oops! this is not a follow_up sheet: ", path, "sheet #:", j+1)
 		} else {
-
 			// s is a follow_up excel sheet
 			fmt.Println("Bingo! this is a follow_up sheet: ", path, "sheet #:", j+1)
 			// keys is the header row of the excel sheet of index j
 			keys := keyList[j]
 			// check the number of PTID and STATUS' colomns
+			// p1, p2 is the PTID column names
 			p1, p2 := helper.CheckPtidColumns(e, path, j, keys)
+			// st1, st2 is the status column names
 			st1, st2 := helper.CheckStatusColumns(e, path, j, keys)
 			// i is the index of rows
 			// m is the map representing the correspnding row with the index i
@@ -46,31 +47,33 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				// check PTID
 				ID1, ID2 := m[p1], m[p2]
 				// assign PTIDs
-
 				diffID := helper.AssignPTID(&ID1, &ID2)
 				// Check STATUS
 				S1, S2 := m[st1], m[st2]
-				// two different STATUS values
 
+				// assign status
 				diffStatus := helper.AssignStatus(&S1, &S2)
 				// check if format of PTID is LLLFDDMMYY
 				helper.CheckPtidFormat(ID1, e, path, j, i)
 
-				// Event follow_up
-
+				// Event followup
 				var coag, plat int
 				var poNYHA float64
-				// Check int and float values
+				// Validate int and float values
 				coagValid := helper.CheckIntValue(&coag, m["COAG"], nums[:3])
 				nyhaValid := helper.CheckFloatValue(&poNYHA, m["PO_NYHA"], floats[1:])
 				platValid := helper.CheckIntValue(&plat, m["PLAT"], nums[:3])
 
+				// if status equals "L", it belongs to lost_to_followup event, not followup event
 				if S1 != "L" && S2 != "L" {
+					// check FU_D format
 					date, est := helper.CheckDateFormat(e, path, j, i, "follow_up Date", m["FU_D"])
+					// create followup notes
 					fuNotes := helper.FollowupNotes(S1, m["FU NOTES"], m["NOTES"], m["STATUS=O REASON"], plat, coag, poNYHA)
-
+					// est equals 0 or 1 means that the date format was parsed to YYYY-MM-DD
 					if est == 0 || est == 1 {
-						fu := followUp{
+						// create event
+						fu := followups{
 							PTID:    ID1,
 							Date:    date,
 							Type:    "followup",
@@ -81,7 +84,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 							Unusual: m["STATUS=O REASON"],
 							DateEst: est,
 							Source:  source{Type: "followup", Path: []string{}}}
-						// Source: add path
+
+						// source: add path
 						fu.Source.Path = append(fu.Source.Path, path)
 
 						// add Notes
@@ -97,16 +101,17 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 
 						// check STATUS
 
-						// true means both non-empty and not equal
+						// if true means both statuses are non-empty and not equal
 						if diffStatus {
 							msg := errMessage{"Status", "two different Statuses: '" + S1 + "', '" + S2 + "'"}
 							fu.Fix = append(fu.Fix, msg)
+							// if one of the codes is D, L, N, or O and the other code is A or R, put the D, L, N or O
 							if helper.StringInSlice(0, S1, codes[4:6]) && helper.StringInSlice(0, S2, codes[:4]) {
 								fu.Status = &S2
 							}
 						}
 
-						// Validate fields' values
+						// validate fields' values
 						if *fu.Status == "" {
 							fu.Status = nil
 						} else if !helper.StringInSlice(0, S1, codes) {
@@ -129,41 +134,43 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 							fu.Fix = append(fu.Fix, msg)
 							//	errlog.ErrorLog(e, path, j, fU.PTID, i, fU.Type, "PLAT", m["PLAT"])
 						}
-						// if no duplicates, write this object to the json file and store in a slice
-						if !(fu).CompareFollowUps(allFollowUps) {
+						// if no duplicates, store in a slice
+						if !fu.CompareFollowups(allFollowUps) {
 							allFollowUps = append(allFollowUps, fu)
-							//helper.WriteTOFile(jsonFile, fu)
 						}
-						// est == 3 means that date has invalid format
 
+						// est == 3 means that date has invalid format
 					} else if est == 3 {
 
-						// create a new fix event
+						// create a  fix event
 						f := general{
 							PTID:    ID1,
 							Type:    "fix",
 							Date:    "1900-01-01",
 							DateEst: 1,
 							Source:  source{Type: "followup", Path: []string{}}}
+						// add path
 						f.Source.Path = append(f.Source.Path, path)
-						f.Msg = "followup event with invalid date: '" + date + "', here is the follow up info: " + fuNotes
+						// add msg
+						f.Msg = "followup event with invalid date: '" + date +
+							"', here is the follow up info: " + fuNotes
 
+						// if no duplicates, store in a slice
 						if !f.CompareEvents(allFix) {
-
 							allFix = append(allFix, f)
 						}
 
-						// follow up date is empty, but has fu notes, then create lka events
+						// est equal 2: follow up date is empty, but has fu notes, then create lka events
 					} else if est == 2 {
 
 						if m["FU NOTES"] != "" || (coag != -9 && coag != 0) || (plat != -9 && plat != 0) ||
 							(poNYHA != -9 && poNYHA != 0) || m["STATUS=O REASON"] != "" || m["NOTES"] != "" {
 							lkaDate, lkaEst := helper.CheckDateFormat(e, path, j, i, "LKA_Date", m["LKA_D"])
-							// create LKA_D Event
 
+							// if last_known_alive date exists
 							if lkaEst == 0 || lkaEst == 1 {
-
-								l := lka{
+								// create LKA_D Event
+								lka := followups{
 									PTID:    ID1,
 									Type:    "last_known_alive",
 									Date:    lkaDate,
@@ -173,35 +180,38 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 									Unusual: m["STATUS=O REASON"],
 									DateEst: lkaEst,
 									Source:  source{Type: "followup", Path: []string{}}}
-								// Source: add path
-								l.Source.Path = append(l.Source.Path, path)
 
-								// add Notes
+								// source: add path
+								lka.Source.Path = append(lka.Source.Path, path)
+
+								// add Notes if exists
 								if !(m["NOTES"] == "" && m["FU NOTES"] == "") {
-									l.Notes = m["FU NOTES"] + " " + m["NOTES"]
+									lka.Notes = m["FU NOTES"] + " " + m["NOTES"]
 								}
-
+								// validate PO_NYHA
 								if !nyhaValid {
 									msg := errMessage{"PO_NYHA", "invalid value: '" + m["PO_NYHA"] + "'"}
-									l.Fix = append(l.Fix, msg)
-
+									lka.Fix = append(lka.Fix, msg)
 								}
+
+								// validate COAG
 								if !coagValid {
 									msg := errMessage{"COAG", "invalid value: '" + m["COAG"] + "'"}
-									l.Fix = append(l.Fix, msg)
-
+									lka.Fix = append(lka.Fix, msg)
 								}
+
+								// validate PLAT
 								if !platValid {
 									msg := errMessage{"PLAT", "invalid value: '" + m["PLAT"] + "'"}
-									l.Fix = append(l.Fix, msg)
+									lka.Fix = append(lka.Fix, msg)
 
 								}
 
-								// if no duplicates, write this object to the json file and store in a slice
-								if !l.CompareLastKnownAlive(allLKA) {
-									allLKA = append(allLKA, l)
+								// if no duplicates, store in a slice
+								if !lka.CompareFollowups(allLKA) {
+									allLKA = append(allLKA, lka)
 								}
-
+								// last_known_alive is not available
 							} else if lkaEst == 2 || lkaEst == 3 {
 								f := general{
 									PTID:    ID1,
@@ -209,7 +219,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 									Date:    "1900-01-01",
 									DateEst: 1,
 									Source:  source{Type: "followup", Path: []string{}}}
-								// LKA_D IS empty
+								// last_known_alive date is empty
 								if lkaEst == 2 {
 									f.Msg = "followup and LKA without date associated, here are my followup notes: " + fuNotes
 								} else {
@@ -220,25 +230,28 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 
 								// Source: add path
 								f.Source.Path = append(f.Source.Path, path)
-
+								// if no duplicates, store in a slice
 								if !f.CompareEvents(allFix) {
 									allFix = append(allFix, f)
 								}
-
 							}
-
 						}
 					}
-
+					// status equals L, but COAG or PLAT or PO_NYHA have values
 				} else if (coag != -9 && coag != 0) || (plat != -9 && plat != 0) || (poNYHA != -9 && poNYHA != 0) {
 					e.Println(path, "Status = L, but COAG OR PLAT OR PO_NYHA HAVE VALUES!", "row: ", i+2)
 				}
 
 				// Event Lost followups
+				// if one of the STATUS columns is “L” and the other is “D” or “N”, do not create the “lost_to_followup”
+				// otherwise, create the “lost_to_followup” event if one is “L”
 				if S1 == "L" && !helper.StringInSlice(0, S2, codes[:2]) || (S2 == "L" && !helper.StringInSlice(0, S1, codes[:2])) {
 					date, est := helper.CheckDateFormat(e, path, j, i, "Status=L_Date", m["STATUS=L DATE"])
 					if est != 3 {
-						l := lostFollowup{
+						// date will be (in order of preference) either the “STATUS=L DATE” field, or the FU_D or LKA_D or
+						// if none of those are available, put 1900-02-02
+
+						lost := general{
 							PTID:    ID1,
 							Type:    "lost_to_followup",
 							Date:    date,
@@ -248,7 +261,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 						// add Notes
 
 						if !(m["FU NOTES"] == "" && m["NOTES"] == "" && m["STATUS=O REASON"] == "") {
-							l.Notes = m["FU NOTES"] + " " + m["NOTES"] + " " + m["STATUS=O REASON"]
+							lost.Notes = m["FU NOTES"] + " " + m["NOTES"] + " " + m["STATUS=O REASON"]
 						}
 
 						// date is empty
@@ -256,25 +269,26 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 							lkaDate, lkaEst := helper.CheckDateFormat(e, path, j, i, "LKA_Date", m["LKA_D"])
 							fuDate, fuEst := helper.CheckDateFormat(e, path, j, i, "follow_up Date", m["FU_D"])
 							if fuEst == 0 || fuEst == 1 {
-								l.Date = fuDate
-								l.DateEst = fuEst
+								lost.Date = fuDate
+								lost.DateEst = fuEst
 							} else if lkaEst == 0 || lkaEst == 1 {
-								l.Date = lkaDate
-								l.DateEst = lkaEst
+								lost.Date = lkaDate
+								lost.DateEst = lkaEst
 							} else {
-								l.Date = "1900-02-02"
-								l.DateEst = 1
+								lost.Date = "1900-02-02"
+								lost.DateEst = 1
 							}
-
 						}
 						// Source: add path
-						l.Source.Path = append(l.Source.Path, path)
-						if !l.CompareLostFollowUps(allLostFollowups) {
-							allLostFollowups = append(allLostFollowups, l)
-						}
+						lost.Source.Path = append(lost.Source.Path, path)
 
+						// if no duplicates, store in a slice
+						if !lost.CompareEvents(allLostFollowups) {
+							allLostFollowups = append(allLostFollowups, lost)
+						}
+						// est == 3, date has invalid format
 					} else {
-						// create a fix Event
+						// create a fix event
 						f := general{
 							PTID:    ID1,
 							Type:    "fix",
@@ -283,16 +297,16 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 							Msg: "Invalid STATUS=L DATE: '" + m["STATUS=L DATE"] + "', Notes: '" + m["FU NOTES"] +
 								" " + m["NOTES"] + " " + m["STATUS=O REASON"] + "'",
 							Source: source{Type: "followup", Path: []string{}}}
-						f.Source.Path = append(f.Source.Path, path)
 
+						// add path
+						f.Source.Path = append(f.Source.Path, path)
+						// if no duplicates, store in a slice
 						if !f.CompareEvents(allFix) {
 							allFix = append(allFix, f)
 						}
-
 					}
-
 				}
-
+				////////////////////////////////////////////////////////////ends here//////////////////////////////////////////////////////
 				// Event Death
 				var operDate, operative string
 				var operEst int
@@ -479,7 +493,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 					} else if m["TE1"] == "2" {
 
 						// Event stroke
-						s := stroke{
+						s := te{
 							PTID:    ID1,
 							Type:    "stroke",
 							Date:    date,
@@ -511,13 +525,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 
 						}
 						// if no duplicates, write this object to the json file and store in a slice
-						if !s.CompareStroke(allStroke) {
-
+						if !s.CompareTE(allStroke) {
 							allStroke = append(allStroke, s)
 						}
 					} else if m["TE1"] == "3" {
 						// Event TIA
-						t := tia{
+						t := te{
 							PTID:    ID1,
 							Type:    "tia",
 							Date:    date,
@@ -539,7 +552,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 
 						}
 						// if no duplicates, write this object to the json file and store in a slice
-						if !t.CompareTia(allTIA) {
+						if !t.CompareTE(allTIA) {
 
 							allTIA = append(allTIA, t)
 						}
@@ -626,7 +639,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 					} else if m["TE2"] == "2" {
 
 						// Event stroke
-						s := stroke{
+						s := te{
 							PTID:    ID1,
 							Type:    "stroke",
 							Date:    date,
@@ -658,13 +671,13 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 							//errlog.ErrorLog(e, path, j, te1.PTID, i, te1.Type, "ANTI_TE1", m["ANTI_TE1"])
 						}
 						// if no duplicates, write this object to the json file and store in a slice
-						if !s.CompareStroke(allStroke) {
+						if !s.CompareTE(allStroke) {
 							//helper.WriteTOFile(jsonFile, s)
 							allStroke = append(allStroke, s)
 						}
 					} else if m["TE2"] == "3" {
 						// Event TIA
-						t := tia{
+						t := te{
 							PTID:    ID1,
 							Type:    "tia",
 							Date:    date,
@@ -686,7 +699,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 
 						}
 						// if no duplicates, write this object to the json file and store in a slice
-						if !t.CompareTia(allTIA) {
+						if !t.CompareTE(allTIA) {
 							//helper.WriteTOFile(jsonFile, t)
 							allTIA = append(allTIA, t)
 						}
@@ -772,7 +785,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 					} else if m["TE3"] == "2" {
 
 						// Event stroke
-						s := stroke{
+						s := te{
 							PTID:    ID1,
 							Type:    "stroke",
 							Date:    date,
@@ -804,13 +817,13 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 
 						}
 						// if no duplicates, write this object to the json file and store in a slice
-						if !s.CompareStroke(allStroke) {
+						if !s.CompareTE(allStroke) {
 							//helper.WriteTOFile(jsonFile, s)
 							allStroke = append(allStroke, s)
 						}
 					} else if m["TE3"] == "3" {
 						// Event TIA
-						t := tia{
+						t := te{
 							PTID:    ID1,
 							Type:    "tia",
 							Date:    date,
@@ -832,7 +845,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 							//errlog.ErrorLog(e, path, j, te1.PTID, i, te1.Type, "ANTI_TE1", m["ANTI_TE1"])
 						}
 						// if no duplicates, write this object to the json file and store in a slice
-						if !t.CompareTia(allTIA) {
+						if !t.CompareTE(allTIA) {
 							//helper.WriteTOFile(jsonFile, t)
 							allTIA = append(allTIA, t)
 						}
@@ -909,22 +922,22 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				}
 
 				// Event FUMI
+
+				// estimate FUMI date
 				date, est = helper.CheckDateFormat(e, path, j, i, "FUMI_Date", m["FUMI_D"])
 				if est == 0 || est == 1 {
-					f1 := general{
+					mi := general{
 						PTID:    ID1,
 						Type:    "myocardial_infarction",
 						Date:    date,
 						DateEst: est,
 						Source:  source{Type: "followup", Path: []string{}}}
 					// Source: add path
-					f1.Source.Path = append(f1.Source.Path, path)
+					mi.Source.Path = append(mi.Source.Path, path)
 
 					// if no duplicates, write this object to the json file and store in a slice
-
-					//helper.WriteTOFile(jsonFile, f1)
-					if !f1.CompareEvents(allFUMI) {
-						allFUMI = append(allFUMI, f1)
+					if !mi.CompareEvents(allFUMI) {
+						allFUMI = append(allFUMI, mi)
 					}
 
 				} else if est == 3 || (est == 2 && m["FUMI"] == "1") {
@@ -952,7 +965,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				// Event FUPACE
 				date, est = helper.CheckDateFormat(e, path, j, i, "FUPACE_Date", m["FUPACE_D"])
 				if est == 0 || est == 1 {
-					f2 := general{
+					pace := general{
 						PTID:    ID1,
 						Type:    "perm_pacemaker",
 						Date:    date,
@@ -960,12 +973,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 						Source:  source{Type: "followup", Path: []string{}}}
 
 					// Source: add path
-					f2.Source.Path = append(f2.Source.Path, path)
+					pace.Source.Path = append(pace.Source.Path, path)
 
 					// if no duplicates, write this object to the json file and store in a slice
-					if !f2.CompareEvents(allFUPACE) {
-						//helper.WriteTOFile(jsonFile, f2)
-						allFUPACE = append(allFUPACE, f2)
+					if !pace.CompareEvents(allFUPACE) {
+
+						allFUPACE = append(allFUPACE, pace)
 					}
 				} else if (est == 2 && m["FUPACE"] == "1") || est == 3 {
 					f := general{
@@ -992,7 +1005,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				organism := m["SBE1 organism"]
 				if est == 0 || est == 1 {
 
-					sbe1 := sbe{
+					sbe1 := general{
 						PTID:    ID1,
 						Type:    "sbe",
 						Date:    date,
@@ -1018,8 +1031,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 					}
 
 					// if no duplicates, write this object to the json file and store in a slice
-					if !sbe1.CompareSbe(allSBE) {
-						//helper.WriteTOFile(jsonFile, sbe1)
+					if !sbe1.CompareEvents(allSBE) {
+
 						allSBE = append(allSBE, sbe1)
 					}
 				} else if (est == 2 && m["SBE1"] == "1") || est == 3 {
@@ -1051,7 +1064,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				organism = m["SBE2 organism"]
 				if est == 0 || est == 1 {
 
-					sbe2 := sbe{
+					sbe2 := general{
 						PTID:    ID1,
 						Type:    "sbe",
 						Date:    date,
@@ -1077,8 +1090,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 					}
 
 					// if no duplicates, write this object to the json file and store in a slice
-					if !sbe2.CompareSbe(allSBE) {
-						//helper.WriteTOFile(jsonFile, sbe2)
+					if !sbe2.CompareEvents(allSBE) {
+
 						allSBE = append(allSBE, sbe2)
 					}
 				} else if (est == 2 && m["SBE2"] == "1") || est == 3 {
@@ -1110,7 +1123,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				ORGANISM = m["SBE3 ORGANISM"]
 				organism = m["SBE3 organism"]
 				if est == 0 || est == 1 {
-					sbe3 := sbe{
+					sbe3 := general{
 						PTID:    ID1,
 						Type:    "sbe",
 						Date:    date,
@@ -1137,8 +1150,8 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 					}
 
 					// if no duplicates, write this object to the json file and store in a slice
-					if !sbe3.CompareSbe(allSBE) {
-						//helper.WriteTOFile(jsonFile, sbe3)
+					if !sbe3.CompareEvents(allSBE) {
+
 						allSBE = append(allSBE, sbe3)
 					}
 				} else if (est == 2 && m["SBE3"] == "1") || est == 3 {
@@ -1167,7 +1180,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				// Event SVD
 				date, est = helper.CheckDateFormat(e, path, j, i, "SVD_Date", m["SVD_D"])
 				if est == 0 || est == 1 {
-					s4 := general{
+					svd := general{
 						PTID:    ID1,
 						Type:    "struct_valve_det",
 						Date:    date,
@@ -1175,12 +1188,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 						Source:  source{Type: "followup", Path: []string{}}}
 
 					// Source: add path
-					s4.Source.Path = append(s4.Source.Path, path)
+					svd.Source.Path = append(svd.Source.Path, path)
 
 					// if no duplicates, write this object to the json file and store in a slice
-					if !s4.CompareEvents(allSVD) {
+					if !svd.CompareEvents(allSVD) {
 						//helper.WriteTOFile(jsonFile, s4)
-						allSVD = append(allSVD, s4)
+						allSVD = append(allSVD, svd)
 					}
 				} else if (est == 2 && m["SVD"] == "1") || est == 3 {
 					f := general{
@@ -1278,19 +1291,19 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				date, est = helper.CheckDateFormat(e, path, j, i, "DVT_Date", m["DVT_D"])
 				if est == 0 || est == 1 {
 
-					d1 := general{
+					dvt := general{
 						PTID:    ID1,
 						Type:    "deep_vein_thrombosis",
 						Date:    date,
 						DateEst: est,
 						Source:  source{Type: "followup", Path: []string{}}}
 					// Source: add path
-					d1.Source.Path = append(d1.Source.Path, path)
+					dvt.Source.Path = append(dvt.Source.Path, path)
 
 					// if no duplicates, write this object to the json file and store in a slice
-					if !d1.CompareEvents(allDVT) {
+					if !dvt.CompareEvents(allDVT) {
 						//helper.WriteTOFile(jsonFile, d1)
-						allDVT = append(allDVT, d1)
+						allDVT = append(allDVT, dvt)
 					}
 				} else if (est == 2 && m["DVT"] == "1") || est == 3 {
 					f := general{
@@ -1314,7 +1327,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				// Event ARH
 				date, est = helper.CheckDateFormat(e, path, j, i, "ARH1_Date", m["ARH1_D"])
 				if est == 0 || est == 1 {
-					arh1 := arh{
+					arh1 := general{
 						PTID:    ID1,
 						Type:    "arh",
 						Date:    date,
@@ -1331,7 +1344,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 
 					}
 					// if no duplicates, write this object to the json file and store in a slice
-					if !arh1.CompareARH(allARH) {
+					if !arh1.CompareEvents(allARH) {
 						//helper.WriteTOFile(jsonFile, arh1)
 						allARH = append(allARH, arh1)
 					}
@@ -1357,7 +1370,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				// ARH2
 				date, est = helper.CheckDateFormat(e, path, j, i, "ARH2_Date", m["ARH2_D"])
 				if est == 0 || est == 1 {
-					arh2 := arh{
+					arh2 := general{
 						PTID:    ID1,
 						Type:    "arh",
 						Date:    date,
@@ -1374,7 +1387,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 						//errlog.ErrorLog(e, path, j, arh2.PTID, i, arh2.Type, "ARH2", m["ARH2"])
 					}
 					// if no duplicates, write this object to the json file and store in a slice
-					if !arh2.CompareARH(allARH) {
+					if !arh2.CompareEvents(allARH) {
 						//helper.WriteTOFile(jsonFile, arh2)
 						allARH = append(allARH, arh2)
 					}
