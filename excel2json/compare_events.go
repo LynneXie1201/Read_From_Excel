@@ -5,6 +5,7 @@ import (
 	"reflect"
 )
 
+// earlyDeathInfo returns a full-text meaning string of the same person's earlier death info
 func (a death) earlyDeathInfo() string {
 	var s, prmText, opText, dateEst string
 
@@ -39,8 +40,9 @@ func (a death) earlyDeathInfo() string {
 	return s
 }
 
-// CompareFollowUps checks if two follow up events are duplicate
-func (a followUp) CompareFollowUps(s []followUp) bool {
+// CompareFollowups checks if two followup events or
+// two last_known_alive events are duplicate
+func (a followups) CompareFollowups(s []followups) bool {
 	for i, b := range s {
 		if a.Status == nil && b.Status == nil {
 			if a.Coag == b.Coag && a.Date == b.Date && a.Notes == b.Notes && a.Unusual == b.Unusual &&
@@ -57,31 +59,6 @@ func (a followUp) CompareFollowUps(s []followUp) bool {
 			}
 		}
 
-	}
-	return false
-}
-
-// CompareFollowUps checks if two follow up events are duplicate
-func (a lostFollowup) CompareLostFollowUps(s []lostFollowup) bool {
-	for i, b := range s {
-		if a.Date == b.Date && a.Notes == b.Notes && a.PTID == b.PTID {
-			s[i].Source.Path = append(s[i].Source.Path, a.Source.Path[0])
-			return true
-
-		}
-	}
-	return false
-}
-
-// CompareFollowUps checks if two follow up events are duplicate
-func (a lka) CompareLastKnownAlive(s []lka) bool {
-	for i, b := range s {
-		if a.Coag == b.Coag && a.Date == b.Date &&
-			a.Notes == b.Notes && a.Unusual == b.Unusual &&
-			a.PTID == b.PTID && a.Plat == b.Plat && a.PoNYHA == b.PoNYHA {
-			s[i].Source.Path = append(s[i].Source.Path, a.Source.Path[0])
-			return true
-		}
 	}
 	return false
 }
@@ -139,21 +116,8 @@ func (a *death) CompareDeath(s *[]death) bool {
 	return false
 }
 
-// CompareTia checks if two TIA events are duplicate
-func (a tia) CompareTia(s []tia) bool {
-	for i, b := range s {
-
-		if a.Agents == b.Agents && a.Date == b.Date &&
-			a.Outcome == b.Outcome && a.PTID == b.PTID {
-			s[i].Source.Path = append(s[i].Source.Path, a.Source.Path[0])
-			return true
-		}
-	}
-	return false
-}
-
-// CompareStroke checks if two stroke events are duplicate
-func (a stroke) CompareStroke(s []stroke) bool {
+// CompareTE checks if two stroke events or two tia events are duplicate
+func (a te) CompareTE(s []te) bool {
 	for i, b := range s {
 		if a.Agents == b.Agents && a.Date == b.Date && a.When == b.When &&
 			a.Outcome == b.Outcome && a.PTID == b.PTID {
@@ -164,16 +128,19 @@ func (a stroke) CompareStroke(s []stroke) bool {
 	return false
 }
 
-// CompareSbe checks if two sbe events are duplicate
-func (a sbe) CompareSbe(s []sbe) bool {
+// CompareEvents checks if two events (including SBE, lost_to_followup, FUMI,
+// FUPACE, SVD, PVL, DVT, ARH, THRM, HEML, Fix) are duplicate
+func (a general) CompareEvents(s []general) bool {
 	for i, b := range s {
 		if a.Organism == nil && b.Organism == nil {
-			if a.Date == b.Date && a.PTID == b.PTID {
+			if a.Date == b.Date && a.PTID == b.PTID && a.Msg == b.Msg &&
+				a.Code == b.Code && a.Notes == b.Notes {
 				s[i].Source.Path = append(s[i].Source.Path, a.Source.Path[0])
 				return true
 			}
 		} else if a.Organism != nil && b.Organism != nil {
-			if a.Date == b.Date && *(a.Organism) == *(b.Organism) && a.PTID == b.PTID {
+			if *(a.Organism) == *(b.Organism) && a.Date == b.Date &&
+				a.PTID == b.PTID && a.Msg == b.Msg && a.Code == b.Code && a.Notes == b.Notes {
 				s[i].Source.Path = append(s[i].Source.Path, a.Source.Path[0])
 				return true
 			}
@@ -182,28 +149,7 @@ func (a sbe) CompareSbe(s []sbe) bool {
 	return false
 }
 
-// CompareEvents checks if two events (including FUMI, FUPACE, SVD, PVL, DVT,
-// ARH, THRM, HEML) are duplicate
-func (a general) CompareEvents(s []general) bool {
-	for i, b := range s {
-		if a.Date == b.Date && a.PTID == b.PTID && a.Msg == b.Msg {
-			s[i].Source.Path = append(s[i].Source.Path, a.Source.Path[0])
-			return true
-		}
-	}
-	return false
-}
-
-func (a arh) CompareARH(s []arh) bool {
-	for i, b := range s {
-		if a.Code == b.Code && a.Date == b.Date && a.PTID == b.PTID {
-			s[i].Source.Path = append(s[i].Source.Path, a.Source.Path[0])
-			return true
-		}
-	}
-	return false
-}
-
+// CompareOperation checks if two operation events are duplicate
 func (a operation) CompareOperation(s []operation) bool {
 	for i, b := range s {
 		if a.Date == b.Date && a.PTID == b.PTID && a.Notes == b.Notes &&
