@@ -209,7 +209,6 @@ func CheckHeaderRow(e *log.Logger, excelFilePath string) (bool, *xlsx.File) {
 
 }
 
-
 // CheckFollowups checks if the excel sheet is an empty sheet,
 // a follow_up sheet or a sheet that should be ignored.
 // Return true and a header row if the sheet is a follow_up sheet;
@@ -609,10 +608,8 @@ func TeNotes(outcome string, anti string) string {
 	} else if anti == "2" {
 		antiText = "Yes, anti-platelet agents"
 	} else if anti == "3" {
-		antiText = "Yes, anticoagulants"
-	} else if anti == "8" {
 		antiText = "Yes, both"
-	} else if anti == "" || anti == "9" || anti == "-9" {
+	} else if anti == "" || anti == "9" || anti == "-9" || anti == "8" {
 		antiText = "Not applicable"
 	} else {
 		antiText = anti
