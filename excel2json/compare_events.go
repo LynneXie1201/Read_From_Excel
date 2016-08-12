@@ -45,20 +45,18 @@ func (a death) earlyDeathInfo() string {
 func (a followups) CompareFollowups(s []followups) bool {
 	for i, b := range s {
 		if a.Status == nil && b.Status == nil {
-			if a.Coag == b.Coag && a.Date == b.Date && a.Notes == b.Notes && a.Unusual == b.Unusual &&
+			if a.Coag == b.Coag && a.Date == b.Date &&
 				a.PTID == b.PTID && a.Plat == b.Plat && a.PoNYHA == b.PoNYHA {
 				s[i].Source.Path = append(s[i].Source.Path, a.Source.Path[0])
 				return true
 			}
 		} else if a.Status != nil && b.Status != nil {
-			if a.Coag == b.Coag && a.Date == b.Date && a.Notes == b.Notes && a.Unusual == b.Unusual &&
+			if a.Coag == b.Coag && a.Date == b.Date &&
 				a.PTID == b.PTID && a.Plat == b.Plat && a.PoNYHA == b.PoNYHA && *(a.Status) == *(b.Status) {
 				s[i].Source.Path = append(s[i].Source.Path, a.Source.Path[0])
 				return true
-
 			}
 		}
-
 	}
 	return false
 }
