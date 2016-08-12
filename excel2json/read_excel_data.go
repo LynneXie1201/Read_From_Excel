@@ -59,6 +59,10 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				// Event followup
 				var coag, plat int
 				var poNYHA float64
+				var unusual, notes string
+				// assign values to unusual and notes
+				unusual = m["STATUS=O REASON"]
+				notes = m["FU NOTES"] + " " + m["NOTES"]
 				// Validate int and float values
 				coagValid := helper.CheckIntValue(&coag, m["COAG"], nums[:3])
 				nyhaValid := helper.CheckFloatValue(&poNYHA, m["PO_NYHA"], floats[1:])
@@ -81,7 +85,6 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 							Plat:    plat,
 							PoNYHA:  poNYHA,
 							Coag:    coag,
-							Unusual: m["STATUS=O REASON"],
 							DateEst: est,
 							Source:  source{Type: "followup", Path: []string{}}}
 
@@ -90,7 +93,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 
 						// add Notes
 						if !(m["NOTES"] == "" && m["FU NOTES"] == "") {
-							fu.Notes = m["FU NOTES"] + " " + m["NOTES"]
+							fu.Notes = &notes
+						}
+
+						// add Unusual
+						if unusual != "" {
+							fu.Unusual = &unusual
 						}
 
 						// check PTID
@@ -176,7 +184,6 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 									Coag:    coag,
 									PoNYHA:  poNYHA,
 									Plat:    plat,
-									Unusual: m["STATUS=O REASON"],
 									DateEst: lkaEst,
 									Source:  source{Type: "followup", Path: []string{}}}
 
@@ -185,7 +192,12 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 
 								// add Notes if exists
 								if !(m["NOTES"] == "" && m["FU NOTES"] == "") {
-									lka.Notes = m["FU NOTES"] + " " + m["NOTES"]
+									lka.Notes = &notes
+								}
+
+								// add Unusual
+								if unusual != "" {
+									lka.Unusual = &unusual
 								}
 
 								// check PTID
@@ -234,11 +246,11 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 									Source:  source{Type: "followup", Path: []string{}}}
 								// last_known_alive date is empty
 								if lkaEst == 2 {
-									f.Msg = "followup and LKA without date associated, here are my followup notes: " + fuNotes
+									f.Msg = "followup and LKA without date associated, here are the followup notes: " + fuNotes
 								} else {
 									// LKA date with invalid format
 									f.Msg = "LKA Date with invalid format: '" + date +
-										"' ,and FU NOTES without date associated. Here are my followup notes: " + fuNotes
+										"' ,and FU NOTES without date associated. Here are the followup notes: " + fuNotes
 								}
 
 								// Source: add path
@@ -256,6 +268,7 @@ func ReadExcelData(e *log.Logger, path string, jsonFile *os.File, columnsChecker
 				}
 
 				// Event Lost followups
+
 				// if one of the STATUS columns is “L” and the other is “D” or “N”, do not create the “lost_to_followup”
 				// otherwise, create the “lost_to_followup” event if one is “L”
 				// date will be (in order of preference) either the “STATUS=L DATE” field, or the FU_D or LKA_D,
