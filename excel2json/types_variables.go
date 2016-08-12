@@ -63,8 +63,8 @@ type followups struct {
 	Date       string       `json:"date"`
 	DateEst    int          `json:"date_est"`
 	Status     *string      `json:"status,omitempty"` // last_known_alive events don't have status field
-	Notes      string       `json:"notes"`
-	Unusual    string       `json:"unusual"`
+	Notes      *string      `json:"notes"`
+	Unusual    *string      `json:"unusual"`
 	Plat       int          `json:"anti_platelet"`
 	Coag       int          `json:"anti_coagulants"`
 	PoNYHA     float64      `json:"post_op_nyha"`
