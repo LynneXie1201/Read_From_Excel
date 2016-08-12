@@ -544,9 +544,15 @@ func FollowupNotes(S1 string, fuNotes string, notes string,
 		nyhaText = strconv.FormatFloat(poNyha, 'f', 1, 64)
 	}
 
-	s = "Status: '" + status + "'" + ", Plat: '" + platText + "'" +
-		", COAG: '" + coagText + "'" + ", PO_NYHA: '" + nyhaText +
-		"'" + ", Notes: '" + fuNotes + " " + notes + " " + reason + "'"
+	if fuNotes == "" && notes == "" && reason == "" {
+		s = "Status: '" + status + "'" + ", Plat: '" + platText + "'" +
+			", COAG: '" + coagText + "'" + ", PO_NYHA: '" + nyhaText +
+			"'"
+	} else {
+		s = "Status: '" + status + "'" + ", Plat: '" + platText + "'" +
+			", COAG: '" + coagText + "'" + ", PO_NYHA: '" + nyhaText +
+			"'" + ", Notes: '" + fuNotes + " " + notes + " " + reason + "'"
+	}
 
 	return s
 
@@ -579,7 +585,7 @@ func DeathNotes(prm string, reason string, operative string) string {
 
 	s = ", here is the death info: Primary cause of death: '" +
 		prmText + "', Reason of death: '" + reason + "', Operative: '" +
-		opText + ", please indicate if death was operative' "
+		opText + ", please indicate if death was operative'"
 
 	return s
 
