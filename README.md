@@ -8,10 +8,10 @@
 
 3. run:
 
-main -folder="L:/CVDMC Students/valve_registry"  -errlog="L:/CVDMC Students/Yilin Xie/data/errorLogs/all_9.txt" -json="L:/CVDMC Students/Yilin Xie/data/json/all_9.json"
+main -folder="xxxx"  -errlog="xxxx" -json="xxx"
 
 
-4. waiting for "Enter path for the columns file" appears, and enter the path: C:/Users/Lynne Xie/Documents/go/src/excel/helper/ignore.txt
+4. waiting for "Enter path for the columns file" appears, and enter the path: xxxx
 
 
 5. waiting to check errorlog and get the json file
